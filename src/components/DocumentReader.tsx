@@ -5,6 +5,7 @@ import { Volume2, VolumeX, Edit3, Columns, AlignLeft, Sparkles, AlertCircle, Che
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
 import { getTranslatedExplanation } from '@/lib/ai';
+import { getTranslation } from '@/lib/translations';
 
 interface DocumentReaderProps {
   onOpenOcrEditor?: () => void;
@@ -30,7 +31,6 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Set language code if available
     if (language === 'hi') utterance.lang = 'hi-IN';
     else if (language === 'mr') utterance.lang = 'mr-IN';
     else if (language === 'gu') utterance.lang = 'gu-IN';
@@ -53,17 +53,12 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
             <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
               DOCUMENT READER
             </span>
-            {currentAnalysis.isScanned && (
-              <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 text-amber-700" /> OCR ({currentAnalysis.ocrConfidence}% Confidence)
-              </span>
-            )}
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-emerald-950">
-            We Read Your Document
+            {getTranslation('weReadYourDoc', language)}
           </h2>
           <p className="text-sm font-medium text-gray-500 mt-0.5">
-            Compare legal clauses side-by-side with citizen-friendly explanations. Click any paragraph to highlight.
+            {getTranslation('readerSubText', language)}
           </p>
         </div>
 
@@ -77,7 +72,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                 viewMode === 'sideBySide' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
               }`}
             >
-              <Columns className="w-3.5 h-3.5" /> Side-by-Side
+              <Columns className="w-3.5 h-3.5" /> {getTranslation('sideBySide', language)}
             </button>
             
             <button
@@ -86,7 +81,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                 viewMode === 'simple' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" /> Simple
+              <Sparkles className="w-3.5 h-3.5" /> {getTranslation('simple', language)}
             </button>
 
             <button
@@ -95,7 +90,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                 viewMode === 'original' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
               }`}
             >
-              <AlignLeft className="w-3.5 h-3.5" /> Original
+              <AlignLeft className="w-3.5 h-3.5" /> {getTranslation('original', language)}
             </button>
           </div>
 
@@ -104,7 +99,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
               onClick={onOpenOcrEditor}
               className="px-3 py-2 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 rounded-2xl text-xs font-extrabold flex items-center gap-1.5 transition-colors border border-emerald-200"
             >
-              <Edit3 className="w-3.5 h-3.5 text-emerald-600" /> Edit Text
+              <Edit3 className="w-3.5 h-3.5 text-emerald-600" /> {getTranslation('editText', language)}
             </button>
           )}
         </div>
@@ -121,9 +116,8 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4 max-h-[550px] overflow-y-auto">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                 <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                  <AlignLeft className="w-4 h-4 text-slate-500" /> Original Legal Document
+                  <AlignLeft className="w-4 h-4 text-slate-500" /> {getTranslation('originalLegalDoc', language)}
                 </h3>
-                <span className="text-[11px] font-semibold text-slate-500">Legal Wording</span>
               </div>
 
               {currentAnalysis.paragraphs.map((para) => {
@@ -150,11 +144,8 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
             <div className="bg-emerald-50/60 rounded-2xl p-5 border border-emerald-200 space-y-4 max-h-[550px] overflow-y-auto">
               <div className="flex items-center justify-between pb-2 border-b border-emerald-200">
                 <h3 className="font-extrabold text-emerald-950 text-sm flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" /> Simple Explanation
+                  <Sparkles className="w-4 h-4 text-emerald-600" /> {getTranslation('simpleExplanation', language)}
                 </h3>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  Citizen Friendly
-                </span>
               </div>
 
               {currentAnalysis.paragraphs.map((para) => {
@@ -175,7 +166,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Simple Meaning #{para.id}
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> #{para.id}
                       </span>
 
                       {/* Text to Speech Button */}
@@ -189,15 +180,14 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                             ? 'bg-emerald-600 text-white animate-pulse'
                             : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                         }`}
-                        title="Listen to simple audio explanation"
                       >
                         {speakingParagraphId === para.id ? (
                           <>
-                            <VolumeX className="w-3.5 h-3.5" /> Stop
+                            <VolumeX className="w-3.5 h-3.5" /> {getTranslation('stopAudio', language)}
                           </>
                         ) : (
                           <>
-                            <Volume2 className="w-3.5 h-3.5" /> Listen 🔊
+                            <Volume2 className="w-3.5 h-3.5" /> {getTranslation('listenAudio', language)}
                           </>
                         )}
                       </button>
@@ -223,13 +213,13 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                 <div key={para.id} className="bg-emerald-50/70 rounded-2xl p-5 border border-emerald-200 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-extrabold text-emerald-900 flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-emerald-600" /> Simplified Section #{para.id}
+                      <Sparkles className="w-4 h-4 text-emerald-600" /> #{para.id}
                     </h4>
                     <button
                       onClick={() => speakText(simpleText, para.id)}
                       className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
                     >
-                      <Volume2 className="w-3.5 h-3.5" /> Listen Audio 🔊
+                      <Volume2 className="w-3.5 h-3.5" /> {getTranslation('listenAudio', language)}
                     </button>
                   </div>
                   <p className="text-lg font-bold text-gray-900 leading-snug">{simpleText}</p>
@@ -243,7 +233,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
         {viewMode === 'original' && (
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 max-w-4xl mx-auto">
             <h4 className="font-extrabold text-slate-900 text-base mb-3 flex items-center gap-2">
-              <AlignLeft className="w-5 h-5 text-slate-600" /> Full Extracted Legal Document Text
+              <AlignLeft className="w-5 h-5 text-slate-600" /> {getTranslation('originalLegalDoc', language)}
             </h4>
             <div className="bg-white p-4 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 whitespace-pre-wrap leading-relaxed">
               {applyPrivacyMask(currentAnalysis.originalText, privacyShield)}

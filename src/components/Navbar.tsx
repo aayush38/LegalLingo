@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, ShieldAlert, Globe, FileText, Landmark, FolderHeart, Menu, X, Sparkles } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Globe, FileText, Landmark, FolderHeart, Menu, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@/lib/types';
+import { getTranslation } from '@/lib/translations';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { language, setLanguage, privacyShield, togglePrivacyShield, currentAnalysis } = useApp();
+  const { language, setLanguage, privacyShield, togglePrivacyShield } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -25,9 +26,6 @@ export const Navbar: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-xl text-emerald-950 tracking-tight">LegalLingo</span>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                  SIH 2026
-                </span>
               </div>
               <p className="text-[11px] text-emerald-700 font-medium hidden sm:block">
                 Legal made simple. Government services accessible.
@@ -46,7 +44,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <FileText className="w-4 h-4" /> Home / Reader
+                <FileText className="w-4 h-4" /> {getTranslation('home', language)}
               </span>
             </Link>
 
@@ -59,7 +57,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <Landmark className="w-4 h-4" /> Govt Schemes
+                <Landmark className="w-4 h-4" /> {getTranslation('govtSchemes', language)}
               </span>
             </Link>
 
@@ -72,7 +70,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <FolderHeart className="w-4 h-4" /> My Documents
+                <FolderHeart className="w-4 h-4" /> {getTranslation('myDocuments', language)}
               </span>
             </Link>
           </nav>
@@ -93,12 +91,12 @@ export const Navbar: React.FC = () => {
               {privacyShield ? (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5 text-white animate-pulse" />
-                  <span>Privacy Shield ON</span>
+                  <span>{getTranslation('privacyShieldOn', language)}</span>
                 </>
               ) : (
                 <>
                   <ShieldAlert className="w-3.5 h-3.5 text-gray-500" />
-                  <span>Privacy Shield OFF</span>
+                  <span>{getTranslation('privacyShieldOff', language)}</span>
                 </>
               )}
             </button>
@@ -148,21 +146,21 @@ export const Navbar: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-emerald-50"
             >
-              Home / Document Reader
+              {getTranslation('home', language)}
             </Link>
             <Link
               href="/schemes"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-emerald-50"
             >
-              Find Govt Schemes
+              {getTranslation('govtSchemes', language)}
             </Link>
             <Link
               href="/my-documents"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-emerald-50"
             >
-              Saved Documents
+              {getTranslation('myDocuments', language)}
             </Link>
           </div>
 

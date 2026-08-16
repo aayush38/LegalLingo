@@ -4,9 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, FileText, Landmark, FolderHeart, Mic, AlertCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
 
 export const Footer: React.FC = () => {
-  const { setIsChatOpen } = useApp();
+  const { setIsChatOpen, language } = useApp();
 
   return (
     <footer className="bg-emerald-950 text-white pt-12 pb-24 sm:pb-12 border-t border-emerald-800">
@@ -18,10 +19,10 @@ export const Footer: React.FC = () => {
             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="font-extrabold text-amber-300 uppercase tracking-wider mb-1">
-                Legal & Civic Disclaimer
+                {getTranslation('disclaimerTitle', language)}
               </h4>
               <p className="font-medium text-emerald-100">
-                LegalLingo provides AI-assisted legal information and document understanding for awareness purposes. It does not constitute legal advice or replace consultation with a qualified legal professional. Important legal and government information should be verified from official government sources (such as Mahabhulekh 7/12 & IGR Maharashtra).
+                {getTranslation('disclaimerText', language)} Important legal and government information should be verified from official government sources (such as Mahabhulekh 7/12 & IGR Maharashtra).
               </p>
             </div>
           </div>
@@ -39,7 +40,7 @@ export const Footer: React.FC = () => {
               <span className="font-black text-xl text-white">LegalLingo</span>
             </div>
             <p className="text-xs text-emerald-300/80 font-medium">
-              Legal made simple. Government services made accessible. Built for Smart India Hackathon.
+              Legal made simple. Government services made accessible. Civic Tech Platform for Citizens.
             </p>
           </div>
 
@@ -100,7 +101,7 @@ export const Footer: React.FC = () => {
 
         {/* Copyright */}
         <div className="pt-6 border-t border-emerald-900 flex flex-col sm:flex-row items-center justify-between text-xs text-emerald-400 font-semibold gap-2">
-          <span>© 2026 LegalLingo - Smart India Hackathon Prototype.</span>
+          <span>© 2026 LegalLingo - Civic Tech Platform.</span>
           <span>Civic Tech for Inclusive Governance</span>
         </div>
 
@@ -110,12 +111,12 @@ export const Footer: React.FC = () => {
       <div className="md:hidden fixed bottom-0 inset-x-0 bg-emerald-950/95 backdrop-blur-md border-t border-emerald-800 py-2.5 px-4 z-40 flex items-center justify-around">
         <Link href="/" className="flex flex-col items-center text-[10px] font-bold text-emerald-200">
           <FileText className="w-5 h-5 text-emerald-400 mb-0.5" />
-          <span>Home</span>
+          <span>{getTranslation('home', language)}</span>
         </Link>
 
         <Link href="/schemes" className="flex flex-col items-center text-[10px] font-bold text-emerald-200">
           <Landmark className="w-5 h-5 text-emerald-400 mb-0.5" />
-          <span>Schemes</span>
+          <span>{getTranslation('govtSchemes', language)}</span>
         </Link>
 
         <button
@@ -127,7 +128,7 @@ export const Footer: React.FC = () => {
 
         <Link href="/my-documents" className="flex flex-col items-center text-[10px] font-bold text-emerald-200">
           <FolderHeart className="w-5 h-5 text-emerald-400 mb-0.5" />
-          <span>Saved</span>
+          <span>{getTranslation('myDocuments', language)}</span>
         </Link>
       </div>
 

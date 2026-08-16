@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { ListTodo, CheckSquare, Square, Trophy } from 'lucide-react';
+import { ListTodo, CheckSquare, Square } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslation } from '@/lib/translations';
 
 export const ActionChecklist: React.FC = () => {
-  const { currentAnalysis, toggleChecklistItem, privacyShield } = useApp();
+  const { currentAnalysis, toggleChecklistItem, privacyShield, language } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.recommendedActions) return null;
 
@@ -28,14 +29,16 @@ export const ActionChecklist: React.FC = () => {
             <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
               CITIZEN TASKLIST
             </span>
-            <h2 className="text-2xl font-black text-emerald-950">What Should I Do Next?</h2>
+            <h2 className="text-2xl font-black text-emerald-950">
+              {getTranslation('whatNextTitle', language)}
+            </h2>
           </div>
         </div>
 
         {/* Progress Counter & Bar */}
         <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-2xl min-w-[200px]">
           <div className="flex justify-between items-center text-xs font-black text-emerald-950 mb-1">
-            <span>{completedCount} of {totalCount} Completed</span>
+            <span>{completedCount} of {totalCount} {getTranslation('completedOf', language)}</span>
             <span>{progressPercent}%</span>
           </div>
           <div className="w-full bg-emerald-200 rounded-full h-2 overflow-hidden">

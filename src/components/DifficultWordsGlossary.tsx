@@ -1,93 +1,81 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BookMarked, HelpCircle, X, Check, Sparkles } from 'lucide-react';
+import { BookOpen, Search, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { LegalTerm } from '@/lib/types';
+import { getTranslation } from '@/lib/translations';
 
 export const DifficultWordsGlossary: React.FC = () => {
-  const { currentAnalysis } = useApp();
-  const [selectedTerm, setSelectedTerm] = useState<LegalTerm | null>(null);
+  const { currentAnalysis, language } = useApp();
+  const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
 
   if (!currentAnalysis || !currentAnalysis.legalTerms) return null;
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
-      <div className="flex items-center gap-3 mb-4">
+      
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-          <BookMarked className="w-6 h-6" />
+          <BookOpen className="w-6 h-6" />
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
             LEGAL DICTIONARY
           </span>
-          <h2 className="text-2xl font-black text-emerald-950">Difficult Legal Words Explained</h2>
+          <h2 className="text-2xl font-black text-emerald-950">
+            {getTranslation('difficultWordsTitle', language)}
+          </h2>
         </div>
       </div>
 
-      <p className="text-xs font-semibold text-gray-500 mb-5">
-        Click any difficult legal term below to see its plain English definition and real-life example.
+      <p className="text-xs text-gray-500 font-semibold mb-5">
+        {getTranslation('difficultSubText', language)}
       </p>
 
-      {/* Clickable Term Chips */}
-      <div className="flex flex-wrap gap-2.5 mb-6">
+      {/* Terms Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {currentAnalysis.legalTerms.map((t, idx) => {
-          const isSelected = selectedTerm?.term === t.term;
+          const isOpen = selectedTerm === t.term;
+
           return (
-            <button
+            <div
               key={idx}
-              onClick={() => setSelectedTerm(isSelected ? null : t)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border shadow-sm flex items-center gap-1.5 ${
-                isSelected
-                  ? 'bg-emerald-600 text-white border-emerald-600 scale-105 shadow-emerald-200'
-                  : 'bg-emerald-50/80 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+              onClick={() => setSelectedTerm(isOpen ? null : t.term)}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+                isOpen
+                  ? 'bg-emerald-50 border-emerald-400 shadow-md ring-2 ring-emerald-300'
+                  : 'bg-slate-50/70 border-slate-200 hover:border-emerald-300 hover:bg-white shadow-2xs'
               }`}
             >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>{t.term}</span>
-            </button>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-emerald-950 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  {t.term}
+                </h3>
+                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  {isOpen ? 'Close' : 'Explain 💡'}
+                </span>
+              </div>
+
+              <p className="text-xs font-semibold text-gray-700 mt-2 leading-relaxed">
+                {t.simpleMeaning}
+              </p>
+
+              {isOpen && (
+                <div className="mt-3 pt-2.5 border-t border-emerald-200 bg-white p-3 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold text-emerald-800 uppercase block">
+                    {getTranslation('simpleExample', language)}:
+                  </span>
+                  <p className="text-xs font-bold text-emerald-950 italic">
+                    "{t.simpleExample}"
+                  </p>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
-
-      {/* Active Term Popover Card */}
-      {selectedTerm && (
-        <div className="bg-emerald-900 text-white rounded-2xl p-6 shadow-xl relative animate-fade-in border border-emerald-700">
-          <button
-            onClick={() => setSelectedTerm(null)}
-            className="absolute top-4 right-4 p-1 rounded-full bg-emerald-800 hover:bg-emerald-700 text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-2 mb-3">
-            <span className="bg-emerald-500 text-emerald-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
-              LEGAL TERM DEFINITION
-            </span>
-            <h3 className="text-2xl font-black text-white">{selectedTerm.term}</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/15">
-              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Simple Meaning
-              </h4>
-              <p className="text-sm font-semibold text-white leading-relaxed">
-                {selectedTerm.simpleMeaning}
-              </p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/15">
-              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider mb-1">
-                Simple Example
-              </h4>
-              <p className="text-sm font-medium text-emerald-100 leading-relaxed">
-                {selectedTerm.simpleExample}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

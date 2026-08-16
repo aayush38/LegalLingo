@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Landmark, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Landmark, ExternalLink } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
 
 export const GovtServicesSection: React.FC = () => {
-  const { currentAnalysis } = useApp();
+  const { currentAnalysis, language } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.relevantServices) return null;
 
@@ -19,7 +20,9 @@ export const GovtServicesSection: React.FC = () => {
           <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
             GOVERNMENT PORTALS
           </span>
-          <h2 className="text-2xl font-black text-emerald-950">Relevant Government Services</h2>
+          <h2 className="text-2xl font-black text-emerald-950">
+            {getTranslation('govtServicesTitle', language)}
+          </h2>
         </div>
       </div>
 
@@ -43,12 +46,12 @@ export const GovtServicesSection: React.FC = () => {
                 rel="noopener noreferrer"
                 className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
               >
-                <span>{service.actionText}</span>
+                <span>{service.actionText || getTranslation('openPortal', language)}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             ) : (
               <button className="w-full px-4 py-2.5 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">
-                <span>View Guidance</span>
+                <span>{getTranslation('viewGuidance', language)}</span>
               </button>
             )}
           </div>

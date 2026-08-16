@@ -4,77 +4,82 @@ import React from 'react';
 import { HelpCircle, FileCheck, Users, IndianRupee, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslation } from '@/lib/translations';
 
 export const FiveQuestionsCard: React.FC = () => {
-  const { currentAnalysis, privacyShield } = useApp();
+  const { currentAnalysis, language, privacyShield } = useApp();
 
-  if (!currentAnalysis) return null;
+  if (!currentAnalysis || !currentAnalysis.fiveQuestions) return null;
 
-  const { fiveQuestions, parties } = currentAnalysis;
+  const fq = currentAnalysis.fiveQuestions;
 
-  const cards = [
+  const items = [
     {
-      title: 'What is this document?',
-      answer: fiveQuestions.documentType,
       icon: FileCheck,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      title: getTranslation('q1Title', language),
+      content: applyPrivacyMask(fq.documentType, privacyShield),
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {
-      title: 'Who is involved?',
-      answer: parties
-        ? parties.map((p) => `${p.role}: ${applyPrivacyMask(p.name, privacyShield)}`).join(' | ')
-        : 'Seller & Buyer',
       icon: Users,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      title: getTranslation('q2Title', language),
+      content: applyPrivacyMask(`${fq.partiesInvolved.seller} & ${fq.partiesInvolved.buyer}`, privacyShield),
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {
-      title: 'What is the amount?',
-      answer: fiveQuestions.totalAmount,
       icon: IndianRupee,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      title: getTranslation('q3Title', language),
+      content: applyPrivacyMask(fq.totalAmount, privacyShield),
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {
-      title: 'Is anything important missing?',
-      answer: fiveQuestions.missingPoints,
       icon: AlertTriangle,
-      color: 'bg-amber-50 text-amber-800 border-amber-200'
+      title: getTranslation('q4Title', language),
+      content: applyPrivacyMask(fq.missingPoints, privacyShield),
+      color: 'bg-amber-100 text-amber-900 border-amber-300'
     },
     {
-      title: 'What should I do next?',
-      answer: fiveQuestions.nextStepsSummary,
       icon: ArrowRight,
-      color: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+      title: getTranslation('q5Title', language),
+      content: applyPrivacyMask(fq.nextStepsSummary, privacyShield),
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     }
   ];
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <HelpCircle className="w-6 h-6" />
         </div>
         <div>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">
-            CITIZEN QUICK FAQ
+          <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+            CITIZEN SUMMARY
           </span>
-          <h2 className="text-2xl font-black text-emerald-950">What You Need To Know</h2>
+          <h2 className="text-2xl font-black text-emerald-950">
+            {getTranslation('whatYouNeedToKnow', language)}
+          </h2>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((card, idx) => {
-          const Icon = card.icon;
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {items.map((item, idx) => {
+          const Icon = item.icon;
           return (
             <div
               key={idx}
-              className={`p-5 rounded-2xl border ${card.color} shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between`}
+              className="bg-slate-50 rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col justify-between hover:shadow-md transition-shadow"
             >
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon className="w-5 h-5" />
-                  <h3 className="font-extrabold text-sm">{card.title}</h3>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 border ${item.color}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
-                <p className="text-base font-bold text-gray-900 leading-snug">{card.answer}</p>
+                <h3 className="text-xs font-black text-slate-800 mb-1.5 uppercase tracking-wide">
+                  {item.title}
+                </h3>
+                <p className="text-xs font-semibold text-slate-900 leading-snug">
+                  {item.content}
+                </p>
               </div>
             </div>
           );

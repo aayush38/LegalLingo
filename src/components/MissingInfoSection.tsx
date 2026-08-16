@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { AlertOctagon, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { AlertOctagon } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
 
 export const MissingInfoSection: React.FC = () => {
-  const { currentAnalysis } = useApp();
+  const { currentAnalysis, language } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.missingInformation) return null;
 
@@ -19,7 +20,9 @@ export const MissingInfoSection: React.FC = () => {
           <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
             ATTENTION REQUIRED
           </span>
-          <h2 className="text-2xl font-black text-emerald-950">Things You Should Check</h2>
+          <h2 className="text-2xl font-black text-emerald-950">
+            {getTranslation('thingsToCheck', language)}
+          </h2>
         </div>
       </div>
 
@@ -36,12 +39,16 @@ export const MissingInfoSection: React.FC = () => {
 
             <div className="bg-white p-3.5 rounded-xl border border-amber-100 space-y-2">
               <div>
-                <span className="text-[10px] font-bold text-amber-800 uppercase block">Why it matters:</span>
+                <span className="text-[10px] font-bold text-amber-800 uppercase block">
+                  {getTranslation('whyItMatters', language)}:
+                </span>
                 <p className="text-xs font-semibold text-gray-800">{item.whyItMatters}</p>
               </div>
 
               <div className="pt-1 border-t border-gray-100">
-                <span className="text-[10px] font-bold text-emerald-800 uppercase block">What you can do:</span>
+                <span className="text-[10px] font-bold text-emerald-800 uppercase block">
+                  {getTranslation('whatYouCanDo', language)}
+                </span>
                 <p className="text-xs font-bold text-emerald-900">{item.whatYouCanDo}</p>
               </div>
             </div>

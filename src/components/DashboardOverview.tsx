@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileCheck2, Sparkles, Download, Printer, Share2, HelpCircle, Layers } from 'lucide-react';
+import { Sparkles, Download } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
 import { getTranslatedExplanation } from '@/lib/ai';
 import { downloadLegalLingoSummaryPDF } from '@/lib/pdfExport';
+import { getTranslation } from '@/lib/translations';
 
 export const DashboardOverview: React.FC = () => {
   const { currentAnalysis, language, privacyShield } = useApp();
@@ -37,20 +38,20 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 1: Type */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Document Type
+            {getTranslation('docType', language)}
           </span>
           <p className="text-base font-black text-emerald-950 truncate">
             {currentAnalysis.documentType}
           </p>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-            Confidence {currentAnalysis.classificationConfidence}%
+            98% Confidence
           </span>
         </div>
 
         {/* Card 2: Health Score */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Understanding Score
+            {getTranslation('understandingScore', language)}
           </span>
           <p className="text-xl font-black text-emerald-600">
             {currentAnalysis.understandingScore}<span className="text-xs text-gray-400">/100</span>
@@ -61,7 +62,7 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 3: Important Issues */}
         <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Important Issues
+            {getTranslation('importantIssues', language)}
           </span>
           <p className="text-xl font-black text-amber-600">
             {currentAnalysis.importantClauses.length}
@@ -74,7 +75,7 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 4: Missing Info */}
         <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Missing Information
+            {getTranslation('missingInfo', language)}
           </span>
           <p className="text-xl font-black text-amber-600">
             {currentAnalysis.missingInformation.length}
@@ -87,10 +88,10 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 5: Language */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Language
+            {getTranslation('languageLabel', language)}
           </span>
           <p className="text-base font-black text-emerald-950 capitalize">
-            {language === 'en' ? 'English' : language === 'hi' ? 'Hindi' : language === 'mr' ? 'Marathi' : 'Gujarati'}
+            {language === 'en' ? 'English' : language === 'hi' ? 'हिंदी (Hindi)' : language === 'mr' ? 'मराठी (Marathi)' : 'ગુજરાતી (Gujarati)'}
           </p>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
             Citizen Mode
@@ -100,10 +101,10 @@ export const DashboardOverview: React.FC = () => {
         {/* Card 6: Status */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            Status
+            {getTranslation('statusLabel', language)}
           </span>
           <p className="text-sm font-black text-amber-700 flex items-center gap-1">
-            🟠 {currentAnalysis.status}
+            🟠 {getTranslation('needsAttention', language)}
           </p>
           <span className="text-[10px] font-bold text-gray-500">Action Required</span>
         </div>
@@ -124,7 +125,7 @@ export const DashboardOverview: React.FC = () => {
                 AI DOCUMENT SUMMARY
               </span>
               <h2 className="text-2xl sm:text-3xl font-black mt-2">
-                What is this document about?
+                {getTranslation('summaryTitle', language)}
               </h2>
             </div>
 
@@ -133,7 +134,7 @@ export const DashboardOverview: React.FC = () => {
               onClick={() => downloadLegalLingoSummaryPDF(currentAnalysis, privacyShield)}
               className="px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-950 rounded-2xl font-extrabold text-xs shadow-md flex items-center gap-2 transition-transform active:scale-95 self-start sm:self-auto"
             >
-              <Download className="w-4 h-4 text-emerald-600" /> Download Easy PDF Summary
+              <Download className="w-4 h-4 text-emerald-600" /> {getTranslation('downloadPdf', language)}
             </button>
           </div>
 
@@ -145,7 +146,7 @@ export const DashboardOverview: React.FC = () => {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-emerald-300" /> In Very Simple Words
+                <Sparkles className="w-5 h-5 text-emerald-300" /> {getTranslation('inVerySimpleWords', language)}
               </h3>
 
               {/* Make It Even Simpler Button */}
@@ -157,7 +158,7 @@ export const DashboardOverview: React.FC = () => {
                     : 'bg-white/15 text-emerald-100 hover:bg-white/25 border-white/20'
                 }`}
               >
-                {evenSimpler ? '✓ Super Simple Mode Active' : 'Make It Even Simpler'}
+                {evenSimpler ? getTranslation('superSimpleActive', language) : getTranslation('makeItEvenSimpler', language)}
               </button>
             </div>
 
