@@ -21,7 +21,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
   // Speech Synthesis Helper
   const speakText = (text: string, id: number) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    
+
     if (speakingParagraphId === id) {
       window.speechSynthesis.cancel();
       setSpeakingParagraphId(null);
@@ -30,7 +30,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     if (language === 'hi') utterance.lang = 'hi-IN';
     else if (language === 'mr') utterance.lang = 'mr-IN';
     else if (language === 'gu') utterance.lang = 'gu-IN';
@@ -45,7 +45,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-100 mb-10">
-      
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
         <div>
@@ -64,31 +64,28 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
 
         {/* View Mode Tabs & Edit Text */}
         <div className="flex items-center gap-2 flex-wrap">
-          
+
           <div className="flex items-center bg-gray-100 p-1 rounded-2xl border border-gray-200">
             <button
               onClick={() => setViewMode('sideBySide')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                viewMode === 'sideBySide' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${viewMode === 'sideBySide' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
+                }`}
             >
               <Columns className="w-3.5 h-3.5" /> {getTranslation('sideBySide', language)}
             </button>
-            
+
             <button
               onClick={() => setViewMode('simple')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                viewMode === 'simple' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${viewMode === 'simple' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
+                }`}
             >
               <Sparkles className="w-3.5 h-3.5" /> {getTranslation('simple', language)}
             </button>
 
             <button
               onClick={() => setViewMode('original')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                viewMode === 'original' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${viewMode === 'original' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:text-emerald-700'
+                }`}
             >
               <AlignLeft className="w-3.5 h-3.5" /> {getTranslation('original', language)}
             </button>
@@ -107,11 +104,11 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
 
       {/* Reader Body Content */}
       <div className="mt-6">
-        
+
         {/* MODE 1: SIDE-BY-SIDE */}
         {viewMode === 'sideBySide' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* LEFT SIDE: Original Document */}
             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4 max-h-[550px] overflow-y-auto">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
@@ -127,11 +124,10 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                   <div
                     key={para.id}
                     onClick={() => setSelectedParagraphId(isSelected ? null : para.id)}
-                    className={`p-3.5 rounded-xl text-xs leading-relaxed transition-all cursor-pointer font-mono border ${
-                      isSelected
+                    className={`p-3.5 rounded-xl text-xs leading-relaxed transition-all cursor-pointer font-mono border ${isSelected
                         ? 'bg-emerald-100/90 border-emerald-500 text-slate-900 shadow-sm font-semibold'
                         : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300'
-                    }`}
+                      }`}
                   >
                     <span className="text-[10px] font-bold text-slate-400 block mb-1">Para #{para.id}</span>
                     {originalText}
@@ -158,11 +154,10 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                   <div
                     key={para.id}
                     onClick={() => setSelectedParagraphId(isSelected ? null : para.id)}
-                    className={`p-4 rounded-xl text-sm leading-relaxed transition-all cursor-pointer border ${
-                      isSelected
+                    className={`p-4 rounded-xl text-sm leading-relaxed transition-all cursor-pointer border ${isSelected
                         ? 'bg-white border-emerald-500 shadow-md ring-2 ring-emerald-400 text-emerald-950 font-medium'
                         : 'bg-white/80 border-emerald-100 text-gray-800 hover:border-emerald-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
@@ -175,11 +170,10 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                           e.stopPropagation();
                           speakText(simpleText, para.id);
                         }}
-                        className={`p-1.5 rounded-lg text-xs flex items-center gap-1 font-bold ${
-                          speakingParagraphId === para.id
+                        className={`p-1.5 rounded-lg text-xs flex items-center gap-1 font-bold ${speakingParagraphId === para.id
                             ? 'bg-emerald-600 text-white animate-pulse'
                             : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                        }`}
+                          }`}
                       >
                         {speakingParagraphId === para.id ? (
                           <>

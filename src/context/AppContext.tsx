@@ -17,6 +17,7 @@ interface AppContextType {
   savedDocuments: DocumentAnalysis[];
   isChatOpen: boolean;
   selectedParagraphId: number | null;
+  setCurrentAnalysis: (analysis: any) => void;
   setIsChatOpen: (open: boolean) => void;
   setLanguage: (lang: LanguageCode) => void;
   togglePrivacyShield: () => void;
@@ -170,6 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         savedDocuments,
         isChatOpen,
         selectedParagraphId,
+        setCurrentAnalysis,
         setIsChatOpen,
         setLanguage,
         togglePrivacyShield,
