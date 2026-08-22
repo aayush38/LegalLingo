@@ -8,14 +8,25 @@ import { getTranslatedExplanation } from '@/lib/ai';
 import { downloadLegalLingoSummaryPDF } from '@/lib/pdfExport';
 import { getTranslation } from '@/lib/translations';
 
+const STATUS_KEY: Record<string, string> = {
+  'Needs Attention': 'needsAttention',
+  'Looks Standard': 'looksStandard',
+  'High Risk': 'highRisk'
+};
+const STATUS_EMOJI: Record<string, string> = {
+  'Needs Attention': '🟠',
+  'Looks Standard': '🟢',
+  'High Risk': '🔴'
+};
+
 export const DashboardOverview: React.FC = () => {
-  const { currentAnalysis, language, privacyShield } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield } = useApp();
   const [evenSimpler, setEvenSimpler] = useState<boolean>(false);
 
   if (!currentAnalysis) return null;
 
   const summaryText = applyPrivacyMask(
-    getTranslatedExplanation(currentAnalysis.summary, language),
+    getTranslatedExplanation(currentAnalysis.summary, language, translationCache),
     privacyShield
   );
 
@@ -24,10 +35,15 @@ export const DashboardOverview: React.FC = () => {
       evenSimpler && currentAnalysis.extraSimpleSummary
         ? currentAnalysis.extraSimpleSummary
         : currentAnalysis.verySimpleSummary,
-      language
+      language,
+      translationCache
     ),
     privacyShield
   );
+
+  const statusKey = STATUS_KEY[currentAnalysis.status] || 'needsAttention';
+  const statusEmoji = STATUS_EMOJI[currentAnalysis.status] || '🟠';
+  const documentTypeText = getTranslatedExplanation(currentAnalysis.documentType, language, translationCache);
 
   return (
     <section className="space-y-6 mb-10">
@@ -41,10 +57,10 @@ export const DashboardOverview: React.FC = () => {
             {getTranslation('docType', language)}
           </span>
           <p className="text-base font-black text-emerald-950 truncate">
-            {currentAnalysis.documentType}
+            {documentTypeText}
           </p>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-            98% Confidence
+            {currentAnalysis.classificationConfidence}% {getTranslation('confidenceSuffix', language)}
           </span>
         </div>
 
@@ -56,7 +72,7 @@ export const DashboardOverview: React.FC = () => {
           <p className="text-xl font-black text-emerald-600">
             {currentAnalysis.understandingScore}<span className="text-xs text-gray-400">/100</span>
           </p>
-          <span className="text-[10px] font-bold text-emerald-800">Completeness High</span>
+          <span className="text-[10px] font-bold text-emerald-800">{getTranslation('completenessHighLabel', language)}</span>
         </div>
 
         {/* Card 3: Important Issues */}
@@ -68,7 +84,7 @@ export const DashboardOverview: React.FC = () => {
             {currentAnalysis.importantClauses.length}
           </p>
           <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-            Clause Flags
+            {getTranslation('clauseFlagsLabel', language)}
           </span>
         </div>
 
@@ -81,7 +97,7 @@ export const DashboardOverview: React.FC = () => {
             {currentAnalysis.missingInformation.length}
           </p>
           <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-            To Check
+            {getTranslation('toCheckLabel', language)}
           </span>
         </div>
 
@@ -94,7 +110,7 @@ export const DashboardOverview: React.FC = () => {
             {language === 'en' ? 'English' : language === 'hi' ? 'हिंदी (Hindi)' : language === 'mr' ? 'मराठी (Marathi)' : 'ગુજરાતી (Gujarati)'}
           </p>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-            Citizen Mode
+            {getTranslation('citizenModeLabel', language)}
           </span>
         </div>
 
@@ -104,9 +120,9 @@ export const DashboardOverview: React.FC = () => {
             {getTranslation('statusLabel', language)}
           </span>
           <p className="text-sm font-black text-amber-700 flex items-center gap-1">
-            🟠 {getTranslation('needsAttention', language)}
+            {statusEmoji} {getTranslation(statusKey, language)}
           </p>
-          <span className="text-[10px] font-bold text-gray-500">Action Required</span>
+          <span className="text-[10px] font-bold text-gray-500">{getTranslation('actionRequiredLabel', language)}</span>
         </div>
       </div>
 
@@ -122,7 +138,7 @@ export const DashboardOverview: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-700/60 pb-4">
             <div>
               <span className="bg-emerald-700/80 text-emerald-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                AI DOCUMENT SUMMARY
+                {getTranslation('aiDocumentSummaryLabel', language)}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black mt-2">
                 {getTranslation('summaryTitle', language)}
@@ -131,7 +147,7 @@ export const DashboardOverview: React.FC = () => {
 
             {/* Download PDF Summary Action Button */}
             <button
-              onClick={() => downloadLegalLingoSummaryPDF(currentAnalysis, privacyShield)}
+              onClick={() => downloadLegalLingoSummaryPDF(currentAnalysis, privacyShield, language, translationCache)}
               className="px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-950 rounded-2xl font-extrabold text-xs shadow-md flex items-center gap-2 transition-transform active:scale-95 self-start sm:self-auto"
             >
               <Download className="w-4 h-4 text-emerald-600" /> {getTranslation('downloadPdf', language)}

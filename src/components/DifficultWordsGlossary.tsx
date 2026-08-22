@@ -3,17 +3,19 @@
 import React, { useState } from 'react';
 import { BookOpen, Search, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const DifficultWordsGlossary: React.FC = () => {
-  const { currentAnalysis, language } = useApp();
+  const { currentAnalysis, language, translationCache } = useApp();
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
+  const t = (text: string) => getTranslatedExplanation(text, language, translationCache);
 
   if (!currentAnalysis || !currentAnalysis.legalTerms) return null;
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
-      
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -21,7 +23,7 @@ export const DifficultWordsGlossary: React.FC = () => {
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-            LEGAL DICTIONARY
+            {getTranslation('legalDictionaryLabel', language)}
           </span>
           <h2 className="text-2xl font-black text-emerald-950">
             {getTranslation('difficultWordsTitle', language)}
@@ -35,13 +37,13 @@ export const DifficultWordsGlossary: React.FC = () => {
 
       {/* Terms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentAnalysis.legalTerms.map((t, idx) => {
-          const isOpen = selectedTerm === t.term;
+        {currentAnalysis.legalTerms.map((term, idx) => {
+          const isOpen = selectedTerm === term.term;
 
           return (
             <div
               key={idx}
-              onClick={() => setSelectedTerm(isOpen ? null : t.term)}
+              onClick={() => setSelectedTerm(isOpen ? null : term.term)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                 isOpen
                   ? 'bg-emerald-50 border-emerald-400 shadow-md ring-2 ring-emerald-300'
@@ -51,15 +53,15 @@ export const DifficultWordsGlossary: React.FC = () => {
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black text-emerald-950 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600" />
-                  {t.term}
+                  {t(term.term)}
                 </h3>
                 <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  {isOpen ? 'Close' : 'Explain 💡'}
+                  {isOpen ? getTranslation('closeLabel', language) : getTranslation('explainLabel', language)}
                 </span>
               </div>
 
               <p className="text-xs font-semibold text-gray-700 mt-2 leading-relaxed">
-                {t.simpleMeaning}
+                {t(term.simpleMeaning)}
               </p>
 
               {isOpen && (
@@ -68,7 +70,7 @@ export const DifficultWordsGlossary: React.FC = () => {
                     {getTranslation('simpleExample', language)}:
                   </span>
                   <p className="text-xs font-bold text-emerald-950 italic">
-                    "{t.simpleExample}"
+                    "{t(term.simpleExample)}"
                   </p>
                 </div>
               )}

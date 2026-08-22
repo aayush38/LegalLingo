@@ -28,7 +28,7 @@ export const Navbar: React.FC = () => {
                 <span className="font-extrabold text-xl text-emerald-950 tracking-tight">LegalLingo</span>
               </div>
               <p className="text-[11px] text-emerald-700 font-medium hidden sm:block">
-                Legal made simple. Government services accessible.
+                {getTranslation('navTagline', language)}
               </p>
             </div>
           </Link>
@@ -86,7 +86,7 @@ export const Navbar: React.FC = () => {
                   ? 'bg-emerald-600 text-white shadow-emerald-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
-              title="Mask personal details like Aadhaar, PAN, and phone numbers"
+              title={getTranslation('privacyShieldTooltip', language)}
             >
               {privacyShield ? (
                 <>
@@ -165,7 +165,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-600">Language:</span>
+            <span className="text-xs font-semibold text-gray-600">{getTranslation('languageColonLabel', language)}</span>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as LanguageCode)}

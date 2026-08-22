@@ -1,14 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { DocumentAnalysis, LanguageCode } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
-import { analyzeDocumentText } from '@/lib/ai';
+import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
 import { processDocumentFile } from '@/lib/ocr';
+
+const LANGUAGE_STORAGE_KEY = 'legallingo_language';
+const SUPPORTED_LANGUAGES: LanguageCode[] = ['en', 'hi', 'mr', 'gu'];
 
 interface AppContextType {
   currentAnalysis: DocumentAnalysis | null;
   language: LanguageCode;
+  translationCache: Record<string, string>;
+  isTranslating: boolean;
   privacyShield: boolean;
   isAnalyzing: boolean;
   uploadProgressStage: string;
@@ -33,7 +38,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentAnalysis, setCurrentAnalysis] = useState<DocumentAnalysis | null>(null);
+  // Starts as 'en' to match server-rendered output, then restored from
+  // localStorage post-mount (see effect below) to avoid a hydration mismatch.
   const [language, setLanguage] = useState<LanguageCode>('en');
+  const [translationCacheByLang, setTranslationCacheByLang] = useState<Record<LanguageCode, Record<string, string>>>({
+    en: {}, hi: {}, mr: {}, gu: {}
+  });
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
   const [privacyShield, setPrivacyShield] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [uploadProgressStage, setUploadProgressStage] = useState<string>('');
@@ -42,6 +53,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [savedDocuments, setSavedDocuments] = useState<DocumentAnalysis[]>([]);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
+
+  const translationCacheRef = useRef(translationCacheByLang);
+  useEffect(() => {
+    translationCacheRef.current = translationCacheByLang;
+  }, [translationCacheByLang]);
 
   // Load initial sample document or local storage history
   useEffect(() => {
@@ -57,6 +73,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSavedDocuments([SAMPLE_AGRICULTURAL_SALE_AGREEMENT]);
     }
   }, []);
+
+  // Restore last-selected language (after mount, to avoid a hydration mismatch)
+  useEffect(() => {
+    try {
+      const storedLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageCode | null;
+      if (storedLang && SUPPORTED_LANGUAGES.includes(storedLang)) {
+        setLanguage(storedLang);
+      }
+    } catch (e) {
+      console.warn('LocalStorage language read failed:', e);
+    }
+  }, []);
+
+  // Persist language choice and keep <html lang> in sync
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch (e) {
+      console.warn('LocalStorage language save failed:', e);
+    }
+    document.documentElement.lang = language;
+  }, [language]);
+
+  // Translate the current document's AI-generated content into the selected
+  // language, on demand. Cached per language so switching back is instant.
+  useEffect(() => {
+    if (language === 'en' || !currentAnalysis) return;
+
+    const required = collectTranslatableStrings(currentAnalysis);
+    const cached = translationCacheRef.current[language] || {};
+    const missing = required.filter((s) => !(s in cached));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    setIsTranslating(true);
+
+    translateStrings(missing, language)
+      .then((map) => {
+        if (cancelled || Object.keys(map).length === 0) return;
+        setTranslationCacheByLang((prev) => ({
+          ...prev,
+          [language]: { ...prev[language], ...map }
+        }));
+      })
+      .finally(() => {
+        if (!cancelled) setIsTranslating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [language, currentAnalysis]);
 
   // Save to local storage whenever savedDocuments change
   const persistSavedDocs = (docs: DocumentAnalysis[]) => {
@@ -87,7 +155,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUploadProgressPercent(100);
       setCurrentAnalysis(SAMPLE_AGRICULTURAL_SALE_AGREEMENT);
       setIsAnalyzing(false);
-      
+
       // Save sample if not exists
       if (!savedDocuments.some((d) => d.id === SAMPLE_AGRICULTURAL_SALE_AGREEMENT.id)) {
         persistSavedDocs([SAMPLE_AGRICULTURAL_SALE_AGREEMENT, ...savedDocuments]);
@@ -163,6 +231,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentAnalysis,
         language,
+        translationCache: translationCacheByLang[language] || {},
+        isTranslating,
         privacyShield,
         isAnalyzing,
         uploadProgressStage,

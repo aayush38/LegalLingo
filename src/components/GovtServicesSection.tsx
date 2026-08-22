@@ -3,10 +3,12 @@
 import React from 'react';
 import { Landmark, ExternalLink } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const GovtServicesSection: React.FC = () => {
-  const { currentAnalysis, language } = useApp();
+  const { currentAnalysis, language, translationCache } = useApp();
+  const t = (text: string) => getTranslatedExplanation(text, language, translationCache);
 
   if (!currentAnalysis || !currentAnalysis.relevantServices) return null;
 
@@ -18,7 +20,7 @@ export const GovtServicesSection: React.FC = () => {
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-            GOVERNMENT PORTALS
+            {getTranslation('governmentPortalsLabel', language)}
           </span>
           <h2 className="text-2xl font-black text-emerald-950">
             {getTranslation('govtServicesTitle', language)}
@@ -33,9 +35,9 @@ export const GovtServicesSection: React.FC = () => {
             className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"
           >
             <div>
-              <h3 className="font-extrabold text-base text-emerald-950 mb-2">{service.title}</h3>
+              <h3 className="font-extrabold text-base text-emerald-950 mb-2">{t(service.title)}</h3>
               <p className="text-xs text-gray-600 font-medium leading-relaxed mb-4">
-                {service.whyRelevant}
+                {t(service.whyRelevant)}
               </p>
             </div>
 
@@ -46,7 +48,7 @@ export const GovtServicesSection: React.FC = () => {
                 rel="noopener noreferrer"
                 className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
               >
-                <span>{service.actionText || getTranslation('openPortal', language)}</span>
+                <span>{service.actionText ? t(service.actionText) : getTranslation('openPortal', language)}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             ) : (

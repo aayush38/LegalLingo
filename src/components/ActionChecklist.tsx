@@ -4,10 +4,11 @@ import React from 'react';
 import { ListTodo, CheckSquare, Square } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const ActionChecklist: React.FC = () => {
-  const { currentAnalysis, toggleChecklistItem, privacyShield, language } = useApp();
+  const { currentAnalysis, toggleChecklistItem, privacyShield, language, translationCache } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.recommendedActions) return null;
 
@@ -27,7 +28,7 @@ export const ActionChecklist: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-              CITIZEN TASKLIST
+              {getTranslation('citizenTasklistLabel', language)}
             </span>
             <h2 className="text-2xl font-black text-emerald-950">
               {getTranslation('whatNextTitle', language)}
@@ -54,7 +55,7 @@ export const ActionChecklist: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {actions.map((act) => {
           const isDone = act.completed;
-          const text = applyPrivacyMask(act.text, privacyShield);
+          const text = applyPrivacyMask(getTranslatedExplanation(act.text, language, translationCache), privacyShield);
 
           return (
             <div

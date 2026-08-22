@@ -3,10 +3,12 @@
 import React from 'react';
 import { AlertOctagon } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const MissingInfoSection: React.FC = () => {
-  const { currentAnalysis, language } = useApp();
+  const { currentAnalysis, language, translationCache } = useApp();
+  const t = (text: string) => getTranslatedExplanation(text, language, translationCache);
 
   if (!currentAnalysis || !currentAnalysis.missingInformation) return null;
 
@@ -18,7 +20,7 @@ export const MissingInfoSection: React.FC = () => {
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
-            ATTENTION REQUIRED
+            {getTranslation('attentionRequiredLabel', language)}
           </span>
           <h2 className="text-2xl font-black text-emerald-950">
             {getTranslation('thingsToCheck', language)}
@@ -34,7 +36,7 @@ export const MissingInfoSection: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <span className="text-lg">🟠</span>
-              <h3 className="text-base font-extrabold text-amber-950">{item.title}</h3>
+              <h3 className="text-base font-extrabold text-amber-950">{t(item.title)}</h3>
             </div>
 
             <div className="bg-white p-3.5 rounded-xl border border-amber-100 space-y-2">
@@ -42,14 +44,14 @@ export const MissingInfoSection: React.FC = () => {
                 <span className="text-[10px] font-bold text-amber-800 uppercase block">
                   {getTranslation('whyItMatters', language)}:
                 </span>
-                <p className="text-xs font-semibold text-gray-800">{item.whyItMatters}</p>
+                <p className="text-xs font-semibold text-gray-800">{t(item.whyItMatters)}</p>
               </div>
 
               <div className="pt-1 border-t border-gray-100">
                 <span className="text-[10px] font-bold text-emerald-800 uppercase block">
                   {getTranslation('whatYouCanDo', language)}
                 </span>
-                <p className="text-xs font-bold text-emerald-900">{item.whatYouCanDo}</p>
+                <p className="text-xs font-bold text-emerald-900">{t(item.whatYouCanDo)}</p>
               </div>
             </div>
           </div>

@@ -3,9 +3,10 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloud, Camera, Sparkles, FileText, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
 
 export const UploadDropzone: React.FC = () => {
-  const { processUploadedFile, loadSampleDocument, isAnalyzing, uploadProgressStage, uploadProgressPercent } = useApp();
+  const { processUploadedFile, loadSampleDocument, isAnalyzing, uploadProgressStage, uploadProgressPercent, language } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -27,7 +28,7 @@ export const UploadDropzone: React.FC = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      
+
       {/* Animated Upload Loader overlay when processing */}
       {isAnalyzing ? (
         <div className="bg-white rounded-3xl p-8 shadow-xl border-2 border-emerald-500 text-center space-y-6 animate-fade-in">
@@ -36,7 +37,7 @@ export const UploadDropzone: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-xl font-extrabold text-emerald-950">Processing Your Document</h3>
+            <h3 className="text-xl font-extrabold text-emerald-950">{getTranslation('processingDocLabel', language)}</h3>
             <p className="text-sm font-semibold text-emerald-700 mt-1">{uploadProgressStage}</p>
           </div>
 
@@ -51,22 +52,22 @@ export const UploadDropzone: React.FC = () => {
           {/* Processing Stages Indicator */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-semibold text-gray-600 pt-2 text-left">
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent >= 20 ? 'text-emerald-700' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Uploading document
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageUploading', language)}
             </div>
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent >= 40 ? 'text-emerald-700' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Reading & OCR
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageReadingOcr', language)}
             </div>
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent >= 60 ? 'text-emerald-700' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Extracting clauses
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageExtractingClauses', language)}
             </div>
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent >= 80 ? 'text-emerald-700' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Simplifying language
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageSimplifying', language)}
             </div>
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent >= 95 ? 'text-emerald-700' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Risk & Scheme audit
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageRiskAudit', language)}
             </div>
             <div className={`flex items-center gap-1.5 ${uploadProgressPercent === 100 ? 'text-emerald-700 font-bold' : 'text-gray-400'}`}>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> LegalLingo Ready
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {getTranslation('stageReady', language)}
             </div>
           </div>
         </div>
@@ -79,9 +80,8 @@ export const UploadDropzone: React.FC = () => {
           }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={handleDrop}
-          className={`bg-white rounded-3xl p-8 sm:p-10 text-center border-2 border-dashed transition-all shadow-lg ${
-            isDragOver ? 'border-emerald-600 bg-emerald-50/50 scale-[1.01]' : 'border-emerald-300 hover:border-emerald-500'
-          }`}
+          className={`bg-white rounded-3xl p-8 sm:p-10 text-center border-2 border-dashed transition-all shadow-lg ${isDragOver ? 'border-emerald-600 bg-emerald-50/50 scale-[1.01]' : 'border-emerald-300 hover:border-emerald-500'
+            }`}
         >
           <input
             type="file"
@@ -105,10 +105,10 @@ export const UploadDropzone: React.FC = () => {
           </div>
 
           <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">
-            Upload Your Legal Document
+            {getTranslation('uploadDocHeadline', language)}
           </h2>
           <p className="text-sm text-gray-600 font-medium max-w-md mx-auto mb-6">
-            Upload Sale Agreements, Land 7/12, Rent Agreements, Loans or Legal Notices. Supports <span className="font-bold text-emerald-700">PDF, JPG, JPEG, PNG</span>.
+            {getTranslation('uploadDocSubText', language)} <span className="font-bold text-emerald-700">PDF, JPG, JPEG, PNG</span>.
           </p>
 
           {/* Primary & Secondary Action Buttons */}
@@ -117,28 +117,22 @@ export const UploadDropzone: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
               className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-extrabold text-base shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-transform active:scale-95"
             >
-              <UploadCloud className="w-5 h-5" /> Upload Your Document
+              <UploadCloud className="w-5 h-5" /> {getTranslation('uploadDoc', language)}
             </button>
 
             <button
               onClick={() => cameraInputRef.current?.click()}
               className="w-full sm:w-auto px-5 py-3.5 bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
             >
-              <Camera className="w-4 h-4" /> Take a Photo
+              <Camera className="w-4 h-4" /> {getTranslation('takePhoto', language)}
             </button>
 
             <button
               onClick={loadSampleDocument}
               className="w-full sm:w-auto px-5 py-3.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
             >
-              <Sparkles className="w-4 h-4 text-emerald-700" /> Try Sample Document
+              <Sparkles className="w-4 h-4 text-emerald-700" /> {getTranslation('trySample', language)}
             </button>
-          </div>
-
-          <div className="mt-6 flex items-center justify-center gap-4 text-xs font-semibold text-emerald-800 bg-emerald-50 py-2 px-4 rounded-full max-w-fit mx-auto border border-emerald-100">
-            <span className="flex items-center gap-1">🔒 100% Private & Encrypted</span>
-            <span>•</span>
-            <span className="flex items-center gap-1">⚡ Automatic OCR Text Extraction</span>
           </div>
         </div>
       )}

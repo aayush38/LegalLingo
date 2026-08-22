@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Edit3, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
 
 interface OcrTextEditorModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface OcrTextEditorModalProps {
 }
 
 export const OcrTextEditorModal: React.FC<OcrTextEditorModalProps> = ({ isOpen, onClose }) => {
-  const { currentAnalysis, updateExtractedText, isAnalyzing } = useApp();
+  const { currentAnalysis, updateExtractedText, isAnalyzing, language } = useApp();
   const [editedText, setEditedText] = useState<string>('');
 
   useEffect(() => {
@@ -37,9 +38,9 @@ export const OcrTextEditorModal: React.FC<OcrTextEditorModalProps> = ({ isOpen, 
               <Edit3 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-emerald-950">Edit Extracted Text</h3>
+              <h3 className="text-xl font-black text-emerald-950">{getTranslation('editExtractedTextTitle', language)}</h3>
               <p className="text-xs text-gray-500 font-semibold">
-                Correct any misrecognized names or Gat numbers, then re-run AI analysis.
+                {getTranslation('editExtractedTextSubText', language)}
               </p>
             </div>
           </div>
@@ -58,7 +59,7 @@ export const OcrTextEditorModal: React.FC<OcrTextEditorModalProps> = ({ isOpen, 
             value={editedText}
             onChange={(e) => setEditedText(e.target.value)}
             className="w-full h-80 p-4 bg-slate-50 border border-slate-300 rounded-2xl font-mono text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
-            placeholder="Type or edit legal document text here..."
+            placeholder={getTranslation('editExtractedTextPlaceholder', language)}
           />
         </div>
 
@@ -68,7 +69,7 @@ export const OcrTextEditorModal: React.FC<OcrTextEditorModalProps> = ({ isOpen, 
             onClick={onClose}
             className="px-5 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-bold"
           >
-            Cancel
+            {getTranslation('cancelLabel', language)}
           </button>
 
           <button
@@ -77,7 +78,7 @@ export const OcrTextEditorModal: React.FC<OcrTextEditorModalProps> = ({ isOpen, 
             className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md"
           >
             <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-            <span>Re-run Analysis</span>
+            <span>{getTranslation('rerunAnalysisLabel', language)}</span>
           </button>
         </div>
 

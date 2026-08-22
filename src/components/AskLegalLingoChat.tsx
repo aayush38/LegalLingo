@@ -5,6 +5,7 @@ import { MessageSquare, Send, Mic, MicOff, Volume2, VolumeX, X, Sparkles, Shield
 import { useApp } from '@/context/AppContext';
 import { ChatMessage } from '@/lib/types';
 import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslation } from '@/lib/translations';
 
 export const AskLegalLingoChat: React.FC = () => {
   const { currentAnalysis, isChatOpen, setIsChatOpen, privacyShield, language } = useApp();
@@ -12,24 +13,25 @@ export const AskLegalLingoChat: React.FC = () => {
     {
       id: 'msg-welcome',
       sender: 'assistant',
-      text: 'Namaste! I am LegalLingo AI Assistant. Ask me any question about your uploaded document, legal terms, missing details, or government schemes.',
+      text: getTranslation('chatWelcomeMessage', language),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isChatOpen]);
+  }, [messages, isChatOpen, isSending]);
 
   if (!isChatOpen) return null;
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const query = textToSend || inputText;
-    if (!query.trim()) return;
+    if (!query.trim() || isSending) return;
 
     const userMsg: ChatMessage = {
       id: `usr-${Date.now()}`,
@@ -38,42 +40,44 @@ export const AskLegalLingoChat: React.FC = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     if (!textToSend) setInputText('');
+    setIsSending(true);
 
-    // Generate contextual AI response
-    setTimeout(() => {
-      let aiResponseText = '';
-      const lower = query.toLowerCase();
+    let answerText: string;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: query,
+          history: nextMessages.slice(0, -1).map((m) => ({ sender: m.sender, text: m.text })),
+          documentContext: currentAnalysis || null,
+          language
+        })
+      });
 
-      if (lower.includes('risk') || lower.includes('danger') || lower.includes('धोका') || lower.includes('खतरा')) {
-        aiResponseText =
-          'The primary financial risk in this document is Clause 3 (Cancellation Clause). If the buyer misses the August 30th payment deadline, the seller Ramesh Patil can forfeit 50% of the advance deposit (₹75,000). Consider requesting a 30-day grace period.';
-      } else if (lower.includes('owner') || lower.includes('owns') || lower.includes('मालक')) {
-        aiResponseText =
-          'According to the document, Mr. Ramesh Vithal Patil claims sole ownership of Gat No. 142/3 (1.20 Hectares) in Village Khed, Pune. You should verify this via Mahabhulekh 7/12 portal.';
-      } else if (lower.includes('missing') || lower.includes('incomplete')) {
-        aiResponseText =
-          'Two main items are unclear: 1) The exact survey sub-number, and 2) Witness 2 identity details are incomplete. Ensure both are clarified before signing.';
-      } else if (lower.includes('marathi') || lower.includes('मराठी')) {
-        aiResponseText =
-          'हा दस्तऐवज रमेश पाटील आणि सुरेश जाधव यांच्यातील ₹८,५०,००० च्या शेतजमीन विक्रीचा करार आहे. ऑगस्ट ३० पूर्वी उर्वरित ₹७ लाख जमा न केल्यास ५०% अ‍ॅडव्हान्स जप्त होऊ शकतो.';
+      if (res.ok) {
+        const data = await res.json();
+        answerText = data.answer || getTranslation('chatFallbackError', language);
       } else {
-        aiResponseText =
-          `Based on the uploaded ${currentAnalysis?.documentType || 'document'}, the total transaction amount is ${
-            currentAnalysis?.fiveQuestions.totalAmount || '₹8,50,000'
-          }. Always consult Mahabhulekh 7/12 or a local legal advisor for final verification.`;
+        answerText = getTranslation('chatFallbackError', language);
       }
+    } catch (e) {
+      console.warn('[AskLegalLingoChat] /api/chat request failed:', e);
+      answerText = getTranslation('chatFallbackError', language);
+    }
 
-      const assistantMsg: ChatMessage = {
-        id: `ast-${Date.now()}`,
-        sender: 'assistant',
-        text: aiResponseText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+    const assistantMsg: ChatMessage = {
+      id: `ast-${Date.now()}`,
+      sender: 'assistant',
+      text: answerText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
 
-      setMessages((prev) => [...prev, assistantMsg]);
-    }, 600);
+    setMessages((prev) => [...prev, assistantMsg]);
+    setIsSending(false);
   };
 
   // Voice Input SpeechRecognition API
@@ -84,7 +88,7 @@ export const AskLegalLingoChat: React.FC = () => {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser window.');
+      alert(getTranslation('speechRecognitionUnsupported', language));
       return;
     }
 
@@ -132,11 +136,11 @@ export const AskLegalLingoChat: React.FC = () => {
   };
 
   const samplePrompts = [
-    'What is risky here?',
-    'Who owns the land according to this agreement?',
-    'Is any information missing?',
-    'Explain this in Marathi',
-    'Which government service can help me verify this land?'
+    getTranslation('promptWhatIsRisky', language),
+    getTranslation('promptWhoOwns', language),
+    getTranslation('promptMissingInfo', language),
+    getTranslation('promptExplainMarathi', language),
+    getTranslation('promptGovtService', language)
   ];
 
   return (
@@ -149,9 +153,9 @@ export const AskLegalLingoChat: React.FC = () => {
             <Sparkles className="w-5 h-5 text-emerald-200" />
           </div>
           <div>
-            <h3 className="font-extrabold text-base leading-none">Ask LegalLingo AI</h3>
+            <h3 className="font-extrabold text-base leading-none">{getTranslation('askLegalLingoAiTitle', language)}</h3>
             <span className="text-[10px] text-emerald-200 font-semibold">
-              RAG Document Context Active
+              {getTranslation('ragContextActiveLabel', language)}
             </span>
           </div>
         </div>
@@ -166,12 +170,13 @@ export const AskLegalLingoChat: React.FC = () => {
 
       {/* Suggested Prompt Chips */}
       <div className="p-2.5 bg-emerald-50/80 border-b border-emerald-100 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none text-xs">
-        <span className="text-[10px] font-bold text-emerald-800 uppercase px-1">Quick:</span>
+        <span className="text-[10px] font-bold text-emerald-800 uppercase px-1">{getTranslation('quickLabel', language)}</span>
         {samplePrompts.map((p, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(p)}
-            className="px-2.5 py-1 bg-white border border-emerald-200 text-emerald-950 font-bold rounded-full hover:bg-emerald-100 transition-colors shadow-2xs"
+            disabled={isSending}
+            className="px-2.5 py-1 bg-white border border-emerald-200 text-emerald-950 font-bold rounded-full hover:bg-emerald-100 transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {p}
           </button>
@@ -206,11 +211,11 @@ export const AskLegalLingoChat: React.FC = () => {
                   >
                     {isSpeakingId === msg.id ? (
                       <>
-                        <VolumeX className="w-3 h-3 text-emerald-600" /> Stop Audio
+                        <VolumeX className="w-3 h-3 text-emerald-600" /> {getTranslation('stopAudio', language)}
                       </>
                     ) : (
                       <>
-                        <Volume2 className="w-3 h-3 text-emerald-600" /> Listen 🔊
+                        <Volume2 className="w-3 h-3 text-emerald-600" /> {getTranslation('listenAudio', language)} 🔊
                       </>
                     )}
                   </button>
@@ -223,6 +228,17 @@ export const AskLegalLingoChat: React.FC = () => {
             </div>
           );
         })}
+
+        {isSending && (
+          <div className="flex flex-col items-start">
+            <div className="max-w-[85%] p-3.5 rounded-2xl text-xs bg-white border border-emerald-100 text-slate-500 rounded-tl-none shadow-sm flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" />
+            </div>
+          </div>
+        )}
+
         <div ref={chatEndRef} />
       </div>
 
@@ -236,7 +252,7 @@ export const AskLegalLingoChat: React.FC = () => {
               ? 'bg-red-600 text-white animate-bounce'
               : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
           }`}
-          title="Ask by Voice 🎙"
+          title={getTranslation('askByVoiceTooltip', language)}
         >
           {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </button>
@@ -246,13 +262,15 @@ export const AskLegalLingoChat: React.FC = () => {
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder={isListening ? 'Listening...' : 'Type or ask by voice...'}
-          className="flex-1 bg-gray-100 border border-gray-200 rounded-full px-4 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+          placeholder={isListening ? getTranslation('listeningPlaceholder', language) : getTranslation('typeOrAskPlaceholder', language)}
+          disabled={isSending}
+          className="flex-1 bg-gray-100 border border-gray-200 rounded-full px-4 py-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium disabled:opacity-60"
         />
 
         <button
           onClick={() => handleSend()}
-          className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-transform active:scale-95 shadow-sm"
+          disabled={isSending}
+          className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-transform active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="w-4 h-4" />
         </button>

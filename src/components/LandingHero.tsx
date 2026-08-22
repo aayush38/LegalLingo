@@ -26,7 +26,7 @@ export const LandingHero: React.FC = () => {
         {/* Hero Tagline: Bold & Black as requested */}
         <div className="mb-4">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight text-black bg-white py-3 px-8 rounded-3xl inline-block border-2 border-emerald-400 shadow-xl">
-            समझें. पूछें. आगे बढ़ें.
+            {getTranslation('taglineHeroTitle', language)}
           </h1>
         </div>
         

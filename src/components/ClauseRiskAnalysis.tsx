@@ -8,13 +8,13 @@ import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const ClauseRiskAnalysis: React.FC = () => {
-  const { currentAnalysis, language, privacyShield, setIsChatOpen } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield, setIsChatOpen } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.importantClauses) return null;
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
-      
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -22,7 +22,7 @@ export const ClauseRiskAnalysis: React.FC = () => {
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
-            CLAUSE AUDIT
+            {getTranslation('clauseAuditLabel', language)}
           </span>
           <h2 className="text-2xl font-black text-emerald-950">
             {getTranslation('clauseAuditTitle', language)}
@@ -55,16 +55,17 @@ export const ClauseRiskAnalysis: React.FC = () => {
             : 'border-emerald-200 bg-emerald-50/20';
 
           const originalText = applyPrivacyMask(clause.originalText, privacyShield);
+          const clauseTitle = getTranslatedExplanation(clause.clauseTitle, language, translationCache);
           const simpleMeaning = applyPrivacyMask(
-            getTranslatedExplanation(clause.simpleMeaning, language),
+            getTranslatedExplanation(clause.simpleMeaning, language, translationCache),
             privacyShield
           );
           const whyItMatters = applyPrivacyMask(
-            getTranslatedExplanation(clause.whyItMatters, language),
+            getTranslatedExplanation(clause.whyItMatters, language, translationCache),
             privacyShield
           );
           const recommendedAction = applyPrivacyMask(
-            getTranslatedExplanation(clause.recommendedAction, language),
+            getTranslatedExplanation(clause.recommendedAction, language, translationCache),
             privacyShield
           );
 
@@ -83,7 +84,7 @@ export const ClauseRiskAnalysis: React.FC = () => {
                   ) : (
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                   )}
-                  {clause.clauseTitle}
+                  {clauseTitle}
                 </h3>
 
                 <span className={`text-xs font-bold px-3 py-1 rounded-full border ${badgeBg} self-start sm:self-auto`}>
@@ -93,7 +94,7 @@ export const ClauseRiskAnalysis: React.FC = () => {
 
               {/* Original Clause Text Box */}
               <div className="bg-white/80 p-3.5 rounded-xl border border-slate-200 font-mono text-xs text-slate-700 leading-relaxed">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Original Wording:</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">{getTranslation('originalWordingLabel', language)}:</span>
                 "{originalText}"
               </div>
 

@@ -12,7 +12,7 @@ interface DocumentReaderProps {
 }
 
 export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor }) => {
-  const { currentAnalysis, language, privacyShield, selectedParagraphId, setSelectedParagraphId } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield, selectedParagraphId, setSelectedParagraphId } = useApp();
   const [viewMode, setViewMode] = useState<'sideBySide' | 'simple' | 'original'>('sideBySide');
   const [speakingParagraphId, setSpeakingParagraphId] = useState<number | null>(null);
 
@@ -51,7 +51,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              DOCUMENT READER
+              {getTranslation('documentReaderLabel', language)}
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-emerald-950">
@@ -129,7 +129,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
                         : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300'
                       }`}
                   >
-                    <span className="text-[10px] font-bold text-slate-400 block mb-1">Para #{para.id}</span>
+                    <span className="text-[10px] font-bold text-slate-400 block mb-1">{getTranslation('paraLabel', language)} #{para.id}</span>
                     {originalText}
                   </div>
                 );
@@ -147,7 +147,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
               {currentAnalysis.paragraphs.map((para) => {
                 const isSelected = selectedParagraphId === para.id;
                 const simpleText = applyPrivacyMask(
-                  getTranslatedExplanation(para.simple, language),
+                  getTranslatedExplanation(para.simple, language, translationCache),
                   privacyShield
                 );
                 return (
@@ -200,7 +200,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
           <div className="space-y-4 max-w-4xl mx-auto">
             {currentAnalysis.paragraphs.map((para) => {
               const simpleText = applyPrivacyMask(
-                getTranslatedExplanation(para.simple, language),
+                getTranslatedExplanation(para.simple, language, translationCache),
                 privacyShield
               );
               return (

@@ -22,7 +22,7 @@ export const Footer: React.FC = () => {
                 {getTranslation('disclaimerTitle', language)}
               </h4>
               <p className="font-medium text-emerald-100">
-                {getTranslation('disclaimerText', language)} Important legal and government information should be verified from official government sources (such as Mahabhulekh 7/12 & IGR Maharashtra).
+                {getTranslation('disclaimerText', language)} {getTranslation('disclaimerTextSuffix', language)}
               </p>
             </div>
           </div>
@@ -40,48 +40,48 @@ export const Footer: React.FC = () => {
               <span className="font-black text-xl text-white">LegalLingo</span>
             </div>
             <p className="text-xs text-emerald-300/80 font-medium">
-              Legal made simple. Government services made accessible. Civic Tech Platform for Citizens.
+              {getTranslation('footerBrandTagline', language)}
             </p>
           </div>
 
           {/* Col 2: Core Tools */}
           <div>
             <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              Core Capabilities
+              {getTranslation('coreCapabilitiesLabel', language)}
             </h4>
             <ul className="space-y-2 text-xs font-semibold text-emerald-200">
-              <li>• OCR PDF & Image Text Extraction</li>
-              <li>• Side-by-Side Paragraph Reader</li>
-              <li>• Clause Risk & Cancellation Flags</li>
-              <li>• Survey Number & Missing Info Audit</li>
-              <li>• Multilingual Hindi, Marathi, Gujarati</li>
+              <li>• {getTranslation('capabilityOcr', language)}</li>
+              <li>• {getTranslation('capabilityReader', language)}</li>
+              <li>• {getTranslation('capabilityClauseRisk', language)}</li>
+              <li>• {getTranslation('capabilityMissingInfo', language)}</li>
+              <li>• {getTranslation('capabilityMultilingual', language)}</li>
             </ul>
           </div>
 
           {/* Col 3: Government Portals */}
           <div>
             <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              Civic Portals
+              {getTranslation('civicPortalsLabel', language)}
             </h4>
             <ul className="space-y-2 text-xs font-semibold text-emerald-200">
               <li>
                 <a href="https://bhulekh.mahabhumi.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • Mahabhulekh 7/12 Land Records
+                  • {getTranslation('portalMahabhulekh', language)}
                 </a>
               </li>
               <li>
                 <a href="https://igrmaharashtra.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • Sub-Registrar Stamp Duty
+                  • {getTranslation('portalSubRegistrar', language)}
                 </a>
               </li>
               <li>
                 <a href="https://pmkisan.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • PM-Kisan Samman Nidhi
+                  • {getTranslation('portalPmKisan', language)}
                 </a>
               </li>
               <li>
                 <a href="https://nalsa.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • NALSA Free Legal Aid
+                  • {getTranslation('portalNalsa', language)}
                 </a>
               </li>
             </ul>
@@ -90,10 +90,10 @@ export const Footer: React.FC = () => {
           {/* Col 4: Target Audience */}
           <div>
             <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              Target Citizens
+              {getTranslation('targetCitizensLabel', language)}
             </h4>
             <p className="text-xs text-emerald-300 font-medium leading-relaxed">
-              Designed for rural citizens, farmers, senior citizens, non-lawyers, and citizens unfamiliar with complex legal terminology across India.
+              {getTranslation('targetCitizensText', language)}
             </p>
           </div>
 
@@ -101,8 +101,8 @@ export const Footer: React.FC = () => {
 
         {/* Copyright */}
         <div className="pt-6 border-t border-emerald-900 flex flex-col sm:flex-row items-center justify-between text-xs text-emerald-400 font-semibold gap-2">
-          <span>© 2026 LegalLingo - Civic Tech Platform.</span>
-          <span>Civic Tech for Inclusive Governance</span>
+          <span>{getTranslation('copyrightText', language)}</span>
+          <span>{getTranslation('civicTechFooterLine', language)}</span>
         </div>
 
       </div>

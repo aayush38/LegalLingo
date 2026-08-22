@@ -4,28 +4,30 @@ import React from 'react';
 import { HelpCircle, FileCheck, Users, IndianRupee, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const FiveQuestionsCard: React.FC = () => {
-  const { currentAnalysis, language, privacyShield } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.fiveQuestions) return null;
 
   const fq = currentAnalysis.fiveQuestions;
+  const t = (text: string) => getTranslatedExplanation(text, language, translationCache);
 
   const partiesLabel = fq.partiesInvolved.seller && fq.partiesInvolved.buyer
-    ? `${fq.partiesInvolved.seller} & ${fq.partiesInvolved.buyer}`
+    ? `${t(fq.partiesInvolved.seller)} & ${t(fq.partiesInvolved.buyer)}`
     : fq.partiesInvolved.landlord && fq.partiesInvolved.tenant
-    ? `${fq.partiesInvolved.landlord} & ${fq.partiesInvolved.tenant}`
+    ? `${t(fq.partiesInvolved.landlord)} & ${t(fq.partiesInvolved.tenant)}`
     : fq.partiesInvolved.parties && fq.partiesInvolved.parties.length > 0
-    ? fq.partiesInvolved.parties.join(' & ')
-    : 'Not specified';
+    ? fq.partiesInvolved.parties.map(t).join(' & ')
+    : getTranslation('notSpecified', language);
 
   const items = [
     {
       icon: FileCheck,
       title: getTranslation('q1Title', language),
-      content: applyPrivacyMask(fq.documentType, privacyShield),
+      content: applyPrivacyMask(t(fq.documentType), privacyShield),
       color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {
@@ -37,19 +39,19 @@ export const FiveQuestionsCard: React.FC = () => {
     {
       icon: IndianRupee,
       title: getTranslation('q3Title', language),
-      content: applyPrivacyMask(fq.totalAmount, privacyShield),
+      content: applyPrivacyMask(t(fq.totalAmount), privacyShield),
       color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {
       icon: AlertTriangle,
       title: getTranslation('q4Title', language),
-      content: applyPrivacyMask(fq.missingPoints, privacyShield),
+      content: applyPrivacyMask(t(fq.missingPoints), privacyShield),
       color: 'bg-amber-100 text-amber-900 border-amber-300'
     },
     {
       icon: ArrowRight,
       title: getTranslation('q5Title', language),
-      content: applyPrivacyMask(fq.nextStepsSummary, privacyShield),
+      content: applyPrivacyMask(t(fq.nextStepsSummary), privacyShield),
       color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     }
   ];
@@ -62,7 +64,7 @@ export const FiveQuestionsCard: React.FC = () => {
         </div>
         <div>
           <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-            CITIZEN SUMMARY
+            {getTranslation('citizenSummaryLabel', language)}
           </span>
           <h2 className="text-2xl font-black text-emerald-950">
             {getTranslation('whatYouNeedToKnow', language)}

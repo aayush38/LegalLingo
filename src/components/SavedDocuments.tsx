@@ -4,9 +4,16 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderHeart, FileText, Trash2, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getTranslation } from '@/lib/translations';
+
+const STATUS_KEY: Record<string, string> = {
+  'Needs Attention': 'needsAttention',
+  'Looks Standard': 'looksStandard',
+  'High Risk': 'highRisk'
+};
 
 export const SavedDocuments: React.FC = () => {
-  const { savedDocuments, deleteSavedDocument, loadSampleDocument, processUploadedFile } = useApp();
+  const { savedDocuments, deleteSavedDocument, loadSampleDocument, language } = useApp();
   const router = useRouter();
 
   const handleOpenDoc = (docId: string) => {
@@ -25,9 +32,9 @@ export const SavedDocuments: React.FC = () => {
           </div>
           <div>
             <span className="bg-emerald-700/80 text-emerald-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              SAVED HISTORY
+              {getTranslation('savedHistoryLabel', language)}
             </span>
-            <h1 className="text-3xl sm:text-4xl font-black mt-1">My Documents</h1>
+            <h1 className="text-3xl sm:text-4xl font-black mt-1">{getTranslation('myDocumentsTitle', language)}</h1>
           </div>
         </div>
 
@@ -35,7 +42,7 @@ export const SavedDocuments: React.FC = () => {
           onClick={loadSampleDocument}
           className="hidden sm:flex px-5 py-2.5 bg-white text-emerald-950 hover:bg-emerald-50 rounded-2xl font-extrabold text-xs shadow-md items-center gap-2"
         >
-          <FileText className="w-4 h-4 text-emerald-600" /> Load Sample Agreement
+          <FileText className="w-4 h-4 text-emerald-600" /> {getTranslation('loadSampleAgreement', language)}
         </button>
       </div>
 
@@ -43,15 +50,15 @@ export const SavedDocuments: React.FC = () => {
       {savedDocuments.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-emerald-100 shadow-sm max-w-lg mx-auto">
           <FileText className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-          <h3 className="text-xl font-black text-gray-900 mb-2">No Saved Documents Yet</h3>
+          <h3 className="text-xl font-black text-gray-900 mb-2">{getTranslation('noSavedDocsTitle', language)}</h3>
           <p className="text-sm text-gray-500 font-medium mb-6">
-            Upload your first legal document or try our built-in sample agricultural agreement.
+            {getTranslation('noSavedDocsText', language)}
           </p>
           <button
             onClick={loadSampleDocument}
             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md"
           >
-            Try Sample Document
+            {getTranslation('trySample', language)}
           </button>
         </div>
       ) : (
@@ -67,7 +74,7 @@ export const SavedDocuments: React.FC = () => {
                     {doc.documentType}
                   </span>
                   <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    🟠 {doc.status}
+                    🟠 {getTranslation(STATUS_KEY[doc.status] || 'needsAttention', language)}
                   </span>
                 </div>
 
@@ -81,7 +88,7 @@ export const SavedDocuments: React.FC = () => {
                     {new Date(doc.createdAt).toLocaleDateString('en-IN')}
                   </span>
                   <span className="flex items-center gap-1 text-emerald-700">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Score {doc.understandingScore}/100
+                    <ShieldCheck className="w-3.5 h-3.5" /> {getTranslation('scoreLabel', language)} {doc.understandingScore}/100
                   </span>
                 </div>
 
@@ -96,14 +103,14 @@ export const SavedDocuments: React.FC = () => {
                   onClick={() => handleOpenDoc(doc.id)}
                   className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
                 >
-                  <span>Continue Analysis</span>
+                  <span>{getTranslation('continueAnalysisLabel', language)}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <button
                   onClick={() => deleteSavedDocument(doc.id)}
                   className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                  title="Delete Document"
+                  title={getTranslation('deleteDocumentLabel', language)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
