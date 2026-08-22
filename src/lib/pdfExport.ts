@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import { DocumentAnalysis } from './types';
 import { LanguageCode } from './types';
 import { applyPrivacyMask } from './privacy';
-import { getTranslatedExplanation } from './ai';
+import { getTranslatedExplanation, collectTranslatableStrings, translateStrings } from './ai';
 import { getTranslation } from './translations';
 
 interface FontConfig {
@@ -41,8 +41,21 @@ export async function downloadLegalLingoSummaryPDF(
   language: LanguageCode = 'en',
   translationCache: Record<string, string> = {}
 ) {
+  // The PDF must not depend on AppContext's background translation fetch having
+  // already finished by click time — fetch whatever's still missing right here,
+  // so the export is always complete regardless of timing.
+  let cache = translationCache;
+  if (language !== 'en') {
+    const required = collectTranslatableStrings(analysis);
+    const missing = required.filter((s) => !(s in cache));
+    if (missing.length > 0) {
+      const fresh = await translateStrings(missing, language);
+      cache = { ...cache, ...fresh };
+    }
+  }
+
   const doc = new jsPDF();
-  const t = (text: string) => applyPrivacyMask(getTranslatedExplanation(text, language, translationCache), privacyEnabled);
+  const t = (text: string) => applyPrivacyMask(getTranslatedExplanation(text, language, cache), privacyEnabled);
   const tr = (key: string) => getTranslation(key, language);
 
   let fontFamily = 'helvetica';

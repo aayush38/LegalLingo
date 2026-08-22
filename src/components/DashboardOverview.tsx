@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, Download } from 'lucide-react';
+import { Sparkles, Download, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
 import { getTranslatedExplanation } from '@/lib/ai';
@@ -22,6 +22,7 @@ const STATUS_EMOJI: Record<string, string> = {
 export const DashboardOverview: React.FC = () => {
   const { currentAnalysis, language, translationCache, privacyShield } = useApp();
   const [evenSimpler, setEvenSimpler] = useState<boolean>(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
   if (!currentAnalysis) return null;
 
@@ -147,10 +148,24 @@ export const DashboardOverview: React.FC = () => {
 
             {/* Download PDF Summary Action Button */}
             <button
-              onClick={() => downloadLegalLingoSummaryPDF(currentAnalysis, privacyShield, language, translationCache)}
-              className="px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-950 rounded-2xl font-extrabold text-xs shadow-md flex items-center gap-2 transition-transform active:scale-95 self-start sm:self-auto"
+              onClick={async () => {
+                if (isDownloadingPdf) return;
+                setIsDownloadingPdf(true);
+                try {
+                  await downloadLegalLingoSummaryPDF(currentAnalysis, privacyShield, language, translationCache);
+                } finally {
+                  setIsDownloadingPdf(false);
+                }
+              }}
+              disabled={isDownloadingPdf}
+              className="px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-950 rounded-2xl font-extrabold text-xs shadow-md flex items-center gap-2 transition-transform active:scale-95 self-start sm:self-auto disabled:opacity-70 disabled:cursor-wait"
             >
-              <Download className="w-4 h-4 text-emerald-600" /> {getTranslation('downloadPdf', language)}
+              {isDownloadingPdf ? (
+                <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 text-emerald-600" />
+              )}
+              {getTranslation('downloadPdf', language)}
             </button>
           </div>
 
