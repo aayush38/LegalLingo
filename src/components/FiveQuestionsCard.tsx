@@ -13,6 +13,14 @@ export const FiveQuestionsCard: React.FC = () => {
 
   const fq = currentAnalysis.fiveQuestions;
 
+  const partiesLabel = fq.partiesInvolved.seller && fq.partiesInvolved.buyer
+    ? `${fq.partiesInvolved.seller} & ${fq.partiesInvolved.buyer}`
+    : fq.partiesInvolved.landlord && fq.partiesInvolved.tenant
+    ? `${fq.partiesInvolved.landlord} & ${fq.partiesInvolved.tenant}`
+    : fq.partiesInvolved.parties && fq.partiesInvolved.parties.length > 0
+    ? fq.partiesInvolved.parties.join(' & ')
+    : 'Not specified';
+
   const items = [
     {
       icon: FileCheck,
@@ -23,7 +31,7 @@ export const FiveQuestionsCard: React.FC = () => {
     {
       icon: Users,
       title: getTranslation('q2Title', language),
-      content: applyPrivacyMask(`${fq.partiesInvolved.seller} & ${fq.partiesInvolved.buyer}`, privacyShield),
+      content: applyPrivacyMask(partiesLabel, privacyShield),
       color: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     {

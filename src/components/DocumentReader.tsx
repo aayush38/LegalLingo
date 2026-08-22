@@ -16,7 +16,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
   const [viewMode, setViewMode] = useState<'sideBySide' | 'simple' | 'original'>('sideBySide');
   const [speakingParagraphId, setSpeakingParagraphId] = useState<number | null>(null);
 
-  if (!currentAnalysis) return null;
+  if (!currentAnalysis || !currentAnalysis.paragraphs) return null;
 
   // Speech Synthesis Helper
   const speakText = (text: string, id: number) => {
