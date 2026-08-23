@@ -4,6 +4,18 @@ export interface OcrProgressCallback {
   (stage: string, percent: number): void;
 }
 
+export interface PageText {
+  pageNumber: number;
+  text: string;
+}
+
+export interface ExtractionResult {
+  text: string;
+  pages: PageText[];
+  confidence: number;
+  isScanned: boolean;
+}
+
 const MAX_PDF_PAGES = 30;
 const MAX_OCR_PAGES = 8;
 
@@ -32,12 +44,14 @@ async function loadPdfjs(): Promise<PdfjsModule> {
 }
 
 /**
- * Perform OCR on Image files (JPG, PNG) or extract text from PDFs.
+ * Perform OCR on Image files (JPG, PNG) or extract text from PDFs. Returns
+ * both the flat concatenated text (for display/storage) and a per-page
+ * breakdown (for page-aware chunked analysis).
  */
 export async function processDocumentFile(
   file: File,
   onProgress?: OcrProgressCallback
-): Promise<{ text: string; confidence: number; isScanned: boolean }> {
+): Promise<ExtractionResult> {
   try {
     if (onProgress) onProgress('Uploading document...', 10);
 
@@ -51,7 +65,7 @@ export async function processDocumentFile(
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
 
-      let fullText = '';
+      const pages: PageText[] = [];
       for (let i = 1; i <= pageCount; i++) {
         if (onProgress) {
           onProgress(`Extracting text from page ${i} of ${pageCount}...`, 25 + Math.round((i / pageCount) * 35));
@@ -60,26 +74,30 @@ export async function processDocumentFile(
         const content = await page.getTextContent();
         const pageText = content.items
           .map((item) => ('str' in item ? item.str : ''))
-          .join(' ');
-        fullText += `${pageText}\n\n`;
+          .join(' ')
+          .trim();
+        pages.push({ pageNumber: i, text: pageText });
       }
-      fullText = fullText.trim();
+      const fullText = pages.map((p) => p.text).join('\n\n').trim();
 
       if (fullText.length > 40) {
         if (onProgress) onProgress('Understanding legal clauses...', 90);
-        return { text: fullText, confidence: 96, isScanned: false };
+        return { text: fullText, pages, confidence: 96, isScanned: false };
       }
 
       // No extractable text layer (likely a scanned/image-only PDF) — OCR the page images.
       if (onProgress) onProgress('No text layer found, running OCR on scanned pages...', 55);
-      const ocrText = await ocrPdfPages(pdf, onProgress);
+      const ocrPages = await ocrPdfPages(pdf, onProgress);
+      const ocrText = ocrPages.map((p) => p.text).join('\n\n').trim();
 
       if (ocrText.length > 30) {
-        return { text: ocrText, confidence: 82, isScanned: true };
+        return { text: ocrText, pages: ocrPages, confidence: 82, isScanned: true };
       }
 
+      const fallbackText = 'Could not extract readable text from this PDF. It may be a scanned document with poor image quality, or contain no text.';
       return {
-        text: 'Could not extract readable text from this PDF. It may be a scanned document with poor image quality, or contain no text.',
+        text: fallbackText,
+        pages: [{ pageNumber: 1, text: fallbackText }],
         confidence: 30,
         isScanned: true
       };
@@ -104,6 +122,7 @@ export async function processDocumentFile(
 
     return {
       text,
+      pages: [{ pageNumber: 1, text }],
       confidence: Math.round(ret.data.confidence || 60),
       isScanned: true
     };
@@ -111,8 +130,10 @@ export async function processDocumentFile(
     console.error('Document processing failed:', error);
     if (onProgress) onProgress('Document processing failed', 100);
 
+    const fallbackText = 'We could not process this document. Please try re-uploading it, or use a clearer scan/photo.';
     return {
-      text: 'We could not process this document. Please try re-uploading it, or use a clearer scan/photo.',
+      text: fallbackText,
+      pages: [{ pageNumber: 1, text: fallbackText }],
       confidence: 0,
       isScanned: true
     };
@@ -122,10 +143,10 @@ export async function processDocumentFile(
 async function ocrPdfPages(
   pdf: PdfDocument,
   onProgress?: OcrProgressCallback
-): Promise<string> {
+): Promise<PageText[]> {
   const worker = await createWorker('eng');
   const pagesToOcr = Math.min(pdf.numPages, MAX_OCR_PAGES);
-  let combinedText = '';
+  const pages: PageText[] = [];
 
   try {
     for (let i = 1; i <= pagesToOcr; i++) {
@@ -142,11 +163,11 @@ async function ocrPdfPages(
       await page.render({ canvas, viewport }).promise;
 
       const { data } = await worker.recognize(canvas);
-      combinedText += `${data.text || ''}\n\n`;
+      pages.push({ pageNumber: i, text: (data.text || '').trim() });
     }
   } finally {
     await worker.terminate();
   }
 
-  return combinedText.trim();
+  return pages;
 }

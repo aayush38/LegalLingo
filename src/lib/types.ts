@@ -48,6 +48,7 @@ export interface ClauseAnalysis {
   recommendedAction: string;
   riskLevel: 'high' | 'review' | 'standard'; // 🔴, 🟠, 🟢
   category?: string;
+  page?: number;
 }
 
 export interface MissingInfoItem {
@@ -56,6 +57,18 @@ export interface MissingInfoItem {
   whyItMatters: string;
   whatYouCanDo: string;
   severity: 'high' | 'medium' | 'low';
+  page?: number;
+}
+
+export interface AnalysisMeta {
+  fullyAnalyzed: boolean;
+  totalPages: number;
+  totalChunks: number;
+  chunksSucceeded: number;
+  chunksFailed: number;
+  warnings: string[];
+  geminiCalls: number;
+  totalMs: number;
 }
 
 export interface LegalTerm {
@@ -89,7 +102,7 @@ export interface DocumentAnalysis {
   understandingScore: number; // 0 - 100
   status: 'Needs Attention' | 'Looks Standard' | 'High Risk';
   originalText: string;
-  paragraphs: { id: number; original: string; simple: string }[];
+  paragraphs: { id: number; original: string; simple: string; page?: number }[];
   summary: string;
   verySimpleSummary: string;
   extraSimpleSummary?: string;
@@ -105,6 +118,7 @@ export interface DocumentAnalysis {
   createdAt: string;
   ocrConfidence?: number;
   isScanned?: boolean;
+  analysisMeta?: AnalysisMeta;
 }
 
 export interface GovernmentScheme {

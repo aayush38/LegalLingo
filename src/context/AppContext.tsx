@@ -169,7 +169,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUploadProgressPercent(10);
 
     try {
-      const { text, confidence, isScanned } = await processDocumentFile(
+      const { text, pages, confidence, isScanned } = await processDocumentFile(
         file,
         (stage, percent) => {
           setUploadProgressStage(stage);
@@ -178,7 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
 
       setOcrConfidence(confidence);
-      const analysis = await analyzeDocumentText(text, file.name);
+      const analysis = await analyzeDocumentText(text, file.name, pages);
       analysis.ocrConfidence = confidence;
       analysis.isScanned = isScanned;
 

@@ -1,17 +1,22 @@
 import { DocumentAnalysis, LanguageCode } from './types';
+import { PageText } from './ocr';
 
 /**
  * AI Document Analysis Service for LegalLingo.
  */
 export async function analyzeDocumentText(
   extractedText: string,
-  fileName: string = 'Uploaded Document'
+  fileName: string = 'Uploaded Document',
+  pages?: PageText[]
 ): Promise<DocumentAnalysis> {
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: extractedText, fileName })
+      body: JSON.stringify({
+        pages: pages && pages.length > 0 ? pages : [{ pageNumber: 1, text: extractedText }],
+        fileName
+      })
     });
 
     if (response.ok) {
