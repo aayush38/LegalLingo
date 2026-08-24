@@ -6,7 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
 
 export const UploadDropzone: React.FC = () => {
-  const { processUploadedFile, loadSampleDocument, isAnalyzing, uploadProgressStage, uploadProgressPercent, language } = useApp();
+  const { processUploadedFiles, loadSampleDocument, isAnalyzing, uploadProgressStage, uploadProgressPercent, language } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -14,15 +14,17 @@ export const UploadDropzone: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      processUploadedFile(files[0]);
+      processUploadedFiles(Array.from(files));
     }
+    // Reset so re-selecting the same file(s) still fires onChange.
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processUploadedFile(e.dataTransfer.files[0]);
+      processUploadedFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -88,6 +90,7 @@ export const UploadDropzone: React.FC = () => {
             ref={fileInputRef}
             onChange={handleFileSelect}
             accept=".pdf,.png,.jpg,.jpeg"
+            multiple
             className="hidden"
           />
 
@@ -109,6 +112,8 @@ export const UploadDropzone: React.FC = () => {
           </h2>
           <p className="text-sm text-gray-600 font-medium max-w-md mx-auto mb-6">
             {getTranslation('uploadDocSubText', language)} <span className="font-bold text-emerald-700">PDF, JPG, JPEG, PNG</span>.
+            <br />
+            <span className="text-xs text-gray-500">{getTranslation('uploadMultipleHint', language)}</span>
           </p>
 
           {/* Primary & Secondary Action Buttons */}

@@ -1,22 +1,36 @@
 import { DocumentAnalysis, LanguageCode } from './types';
 import { PageText } from './ocr';
 
+/** One uploaded file's extracted pages, as sent to /api/analyze. */
+export interface AnalysisSourceDocument {
+  fileName: string;
+  pages: PageText[];
+}
+
 /**
  * AI Document Analysis Service for LegalLingo.
+ *
+ * `documents` carries one entry per uploaded file; the route combines them into
+ * a single analysis while keeping chunk boundaries aligned to file boundaries.
+ * Falls back to a single synthetic document when only flat text is available
+ * (the manually-edited-OCR path).
  */
 export async function analyzeDocumentText(
   extractedText: string,
   fileName: string = 'Uploaded Document',
-  pages?: PageText[]
+  pages?: PageText[],
+  documents?: AnalysisSourceDocument[]
 ): Promise<DocumentAnalysis> {
+  const payloadDocuments: AnalysisSourceDocument[] =
+    documents && documents.length > 0
+      ? documents
+      : [{ fileName, pages: pages && pages.length > 0 ? pages : [{ pageNumber: 1, text: extractedText }] }];
+
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pages: pages && pages.length > 0 ? pages : [{ pageNumber: 1, text: extractedText }],
-        fileName
-      })
+      body: JSON.stringify({ documents: payloadDocuments, fileName })
     });
 
     if (response.ok) {

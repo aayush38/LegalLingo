@@ -49,6 +49,8 @@ export interface ClauseAnalysis {
   riskLevel: 'high' | 'review' | 'standard'; // 🔴, 🟠, 🟢
   category?: string;
   page?: number;
+  /** Which uploaded file this came from — only set for multi-file uploads. */
+  sourceFile?: string;
 }
 
 export interface MissingInfoItem {
@@ -58,16 +60,33 @@ export interface MissingInfoItem {
   whatYouCanDo: string;
   severity: 'high' | 'medium' | 'low';
   page?: number;
+  /** Which uploaded file this came from — only set for multi-file uploads. */
+  sourceFile?: string;
+}
+
+export interface AnalyzedFileInfo {
+  fileName: string;
+  /** Inclusive page range this file occupies in the combined document. */
+  startPage: number;
+  endPage: number;
+  pageCount: number;
 }
 
 export interface AnalysisMeta {
   fullyAnalyzed: boolean;
   totalPages: number;
+  /** Number of source files combined into this analysis (1 for a single upload). */
+  totalFiles: number;
+  files: AnalyzedFileInfo[];
   totalChunks: number;
   chunksSucceeded: number;
   chunksFailed: number;
   warnings: string[];
-  geminiCalls: number;
+  /** Total LLM completions issued (chunk extractions + synthesis). */
+  llmCalls: number;
+  /** Which provider/model actually served this analysis. */
+  provider: string;
+  model: string;
   totalMs: number;
 }
 
@@ -102,7 +121,7 @@ export interface DocumentAnalysis {
   understandingScore: number; // 0 - 100
   status: 'Needs Attention' | 'Looks Standard' | 'High Risk';
   originalText: string;
-  paragraphs: { id: number; original: string; simple: string; page?: number }[];
+  paragraphs: { id: number; original: string; simple: string; page?: number; sourceFile?: string }[];
   summary: string;
   verySimpleSummary: string;
   extraSimpleSummary?: string;
@@ -118,6 +137,8 @@ export interface DocumentAnalysis {
   createdAt: string;
   ocrConfidence?: number;
   isScanned?: boolean;
+  /** Names of every file in this submission — length > 1 for multi-file uploads. */
+  sourceFiles?: string[];
   analysisMeta?: AnalysisMeta;
 }
 

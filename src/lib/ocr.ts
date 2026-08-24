@@ -1,4 +1,5 @@
 import { createWorker } from 'tesseract.js';
+import { combineDocuments, type FileRange } from './documentChunking';
 
 export interface OcrProgressCallback {
   (stage: string, percent: number): void;
@@ -7,6 +8,8 @@ export interface OcrProgressCallback {
 export interface PageText {
   pageNumber: number;
   text: string;
+  sourceFile?: string;
+  sourcePage?: number;
 }
 
 export interface ExtractionResult {
@@ -15,6 +18,29 @@ export interface ExtractionResult {
   confidence: number;
   isScanned: boolean;
 }
+
+/** One file's extraction result within a multi-file upload. */
+export interface FileExtractionResult extends ExtractionResult {
+  fileName: string;
+}
+
+export interface MultiFileExtractionResult {
+  /** Per-file results, in the order the files were submitted. */
+  files: FileExtractionResult[];
+  /** All files' pages, renumbered continuously and tagged with their source file. */
+  pages: PageText[];
+  /** Combined plain text, with a header separating each file. */
+  text: string;
+  /** Page range each file occupies in the combined `pages` array. */
+  fileRanges: FileRange[];
+  /** Page-weighted mean OCR confidence across all files. */
+  confidence: number;
+  /** True if any file required the OCR path. */
+  isScanned: boolean;
+}
+
+/** Hard cap on files per upload — each file costs at least one LLM call downstream. */
+export const MAX_FILES_PER_UPLOAD = 10;
 
 const MAX_PDF_PAGES = 30;
 const MAX_OCR_PAGES = 8;
@@ -138,6 +164,66 @@ export async function processDocumentFile(
       isScanned: true
     };
   }
+}
+
+/**
+ * Extracts text from several uploaded files and combines them into one logical
+ * document for analysis.
+ *
+ * Files are processed sequentially rather than in parallel: both pdfjs and
+ * Tesseract are CPU-bound in the browser's main thread, so running them
+ * concurrently makes the page janky without finishing any sooner. Each file
+ * gets its own slice of the progress bar.
+ *
+ * A file that fails extraction does not fail the batch — it is returned with
+ * its error text so the caller can report it, and the remaining files are
+ * still analyzed.
+ */
+export async function processDocumentFiles(
+  files: File[],
+  onProgress?: OcrProgressCallback
+): Promise<MultiFileExtractionResult> {
+  const selected = files.slice(0, MAX_FILES_PER_UPLOAD);
+  const results: FileExtractionResult[] = [];
+
+  for (let i = 0; i < selected.length; i++) {
+    const file = selected[i];
+    // Map each file's 0-100 progress into its own band of the overall bar.
+    const bandStart = (i / selected.length) * 100;
+    const bandSize = 100 / selected.length;
+
+    const result = await processDocumentFile(file, (stage, percent) => {
+      if (!onProgress) return;
+      const overall = Math.round(bandStart + (percent / 100) * bandSize);
+      const prefix = selected.length > 1 ? `File ${i + 1} of ${selected.length}: ` : '';
+      onProgress(`${prefix}${stage}`, Math.min(overall, 100));
+    });
+
+    results.push({ ...result, fileName: file.name });
+  }
+
+  const combined = combineDocuments(
+    results.map((r) => ({ fileName: r.fileName, pages: r.pages }))
+  );
+
+  const text = results
+    .map((r) => (selected.length > 1 ? `=== ${r.fileName} ===\n${r.text}` : r.text))
+    .join('\n\n');
+
+  const totalPages = results.reduce((sum, r) => sum + r.pages.length, 0);
+  const confidence =
+    totalPages > 0
+      ? Math.round(results.reduce((sum, r) => sum + r.confidence * r.pages.length, 0) / totalPages)
+      : 0;
+
+  return {
+    files: results,
+    pages: combined.pages,
+    text,
+    fileRanges: combined.files,
+    confidence,
+    isScanned: results.some((r) => r.isScanned)
+  };
 }
 
 async function ocrPdfPages(

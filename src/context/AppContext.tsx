@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { DocumentAnalysis, LanguageCode } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
 import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
-import { processDocumentFile } from '@/lib/ocr';
+import { processDocumentFiles, MAX_FILES_PER_UPLOAD } from '@/lib/ocr';
 
 const LANGUAGE_STORAGE_KEY = 'legallingo_language';
 const SUPPORTED_LANGUAGES: LanguageCode[] = ['en', 'hi', 'mr', 'gu'];
@@ -29,6 +29,7 @@ interface AppContextType {
   setSelectedParagraphId: (id: number | null) => void;
   loadSampleDocument: () => void;
   processUploadedFile: (file: File) => Promise<void>;
+  processUploadedFiles: (files: File[]) => Promise<void>;
   updateExtractedText: (newText: string) => Promise<void>;
   toggleChecklistItem: (itemId: string) => void;
   deleteSavedDocument: (docId: string) => void;
@@ -163,25 +164,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 800);
   };
 
-  const processUploadedFile = async (file: File) => {
+  /**
+   * Runs OCR/extraction on one or more uploaded files and analyzes them as a
+   * single submission. Multiple files are combined server-side rather than
+   * analyzed separately, so the summary and checklist cover the whole set.
+   */
+  const processUploadedFiles = async (files: File[]) => {
+    const selected = files.slice(0, MAX_FILES_PER_UPLOAD);
+    if (selected.length === 0) return;
+
     setIsAnalyzing(true);
-    setUploadProgressStage('Uploading document...');
-    setUploadProgressPercent(10);
+    setUploadProgressStage(
+      selected.length > 1 ? `Uploading ${selected.length} documents...` : 'Uploading document...'
+    );
+    setUploadProgressPercent(5);
 
     try {
-      const { text, pages, confidence, isScanned } = await processDocumentFile(
-        file,
-        (stage, percent) => {
-          setUploadProgressStage(stage);
-          setUploadProgressPercent(percent);
-        }
+      const extraction = await processDocumentFiles(selected, (stage, percent) => {
+        setUploadProgressStage(stage);
+        setUploadProgressPercent(percent);
+      });
+
+      setOcrConfidence(extraction.confidence);
+      setUploadProgressStage('Understanding legal clauses...');
+      setUploadProgressPercent(92);
+
+      const title =
+        selected.length > 1
+          ? `${selected[0].name} + ${selected.length - 1} more`
+          : selected[0].name;
+
+      const analysis = await analyzeDocumentText(
+        extraction.text,
+        title,
+        extraction.pages,
+        extraction.files.map((f) => ({ fileName: f.fileName, pages: f.pages }))
       );
+      analysis.ocrConfidence = extraction.confidence;
+      analysis.isScanned = extraction.isScanned;
+      analysis.sourceFiles = extraction.files.map((f) => f.fileName);
 
-      setOcrConfidence(confidence);
-      const analysis = await analyzeDocumentText(text, file.name, pages);
-      analysis.ocrConfidence = confidence;
-      analysis.isScanned = isScanned;
-
+      setUploadProgressPercent(100);
       setCurrentAnalysis(analysis);
       persistSavedDocs([analysis, ...savedDocuments]);
     } catch (error) {
@@ -190,6 +213,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsAnalyzing(false);
     }
   };
+
+  const processUploadedFile = (file: File) => processUploadedFiles([file]);
 
   const updateExtractedText = async (newText: string) => {
     if (!currentAnalysis) return;
@@ -248,6 +273,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedParagraphId,
         loadSampleDocument,
         processUploadedFile,
+        processUploadedFiles,
         updateExtractedText,
         toggleChecklistItem,
         deleteSavedDocument,

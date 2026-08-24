@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callGemini, GeminiRequestError } from '@/lib/gemini';
+import { completeText, LLMError, statusForError } from '@/lib/llm';
+
+const CHAT_RETRIES = 1;
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
@@ -105,12 +107,16 @@ CITIZEN'S QUESTION: ${question}
 
 Answer:`;
 
-    const answer = await callGemini(prompt, 0.3, false);
+    const answer = await completeText(
+      { prompt, temperature: 0.3, json: false },
+      { label: 'api/chat', maxRetries: CHAT_RETRIES }
+    );
 
     return NextResponse.json({ answer: answer.trim() });
   } catch (e) {
-    if (e instanceof GeminiRequestError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
+    if (e instanceof LLMError) {
+      console.error('[api/chat] LLM failure:', e.message);
+      return NextResponse.json({ error: e.message }, { status: statusForError(e) });
     }
     console.error('[api/chat] Unexpected error:', e);
     return NextResponse.json({ error: 'Unexpected error during chat' }, { status: 500 });

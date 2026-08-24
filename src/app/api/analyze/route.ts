@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRelevantServicesForDocType } from '@/lib/govtServices';
-import { callGemini, parseGeminiJson, GeminiRequestError } from '@/lib/gemini';
-import { splitIntoSections, buildChunks, dedupeItems, type Chunk, type PageInput } from '@/lib/documentChunking';
+import { completeJson, LLMError, resolveProvider, statusForError, type LLMProvider } from '@/lib/llm';
+import {
+  splitIntoSections,
+  buildChunks,
+  combineDocuments,
+  dedupeItems,
+  type Chunk,
+  type PageInput,
+  type SourceDocument
+} from '@/lib/documentChunking';
 
 const CHUNK_CONCURRENCY = 3;
 const CHUNK_RETRIES = 2;
 const SYNTHESIS_RETRIES = 2;
+const JSON_ATTEMPTS = 2;
 
 interface ChunkParagraph {
   page: number;
@@ -50,10 +59,53 @@ const CHUNK_SCHEMA = `{
   "legalTerms": [ { "term": "string - a difficult/legal word that actually appears in this excerpt", "simpleMeaning": "string", "simpleExample": "string" } ]
 }`;
 
-async function extractChunk(chunk: Chunk, fileName: string): Promise<{ chunk: Chunk; data?: ChunkExtraction; error?: string }> {
+/** Structural check fed to completeJson so a malformed shape gets re-prompted, not dropped. */
+function validateChunkExtraction(value: unknown): true | string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'the response must be a single JSON object';
+  }
+  const obj = value as Record<string, unknown>;
+  for (const key of ['paragraphs', 'importantClauses', 'missingInformation', 'legalTerms']) {
+    if (obj[key] !== undefined && !Array.isArray(obj[key])) {
+      return `"${key}" must be a JSON array`;
+    }
+  }
+  if (typeof obj.chunkSummary !== 'string' || !obj.chunkSummary.trim()) {
+    return '"chunkSummary" must be a non-empty string';
+  }
+  return true;
+}
+
+/**
+ * Records which provider(s) actually served this request. A single analysis can
+ * be served by more than one when the primary fails partway and the fallback
+ * picks up, so this tracks a set rather than a single name.
+ */
+class ProviderTracker {
+  private used = new Map<string, string>();
+
+  readonly note = (provider: LLMProvider) => {
+    this.used.set(provider.name, provider.model);
+  };
+
+  get names(): string {
+    return [...this.used.keys()].join('+');
+  }
+
+  get models(): string {
+    return [...this.used.values()].join('+');
+  }
+}
+
+async function extractChunk(
+  chunk: Chunk,
+  fileName: string,
+  tracker: ProviderTracker
+): Promise<{ chunk: Chunk; data?: ChunkExtraction; error?: string }> {
+  const documentLabel = chunk.sourceFile || fileName;
   const prompt = `You are LegalLingo, an AI assistant that helps Indian citizens understand legal and civic documents in plain language.
 
-This is EXCERPT ${chunk.index + 1} (pages ${chunk.startPage}-${chunk.endPage}) of a larger document named "${fileName}". The excerpt contains "[[PAGE N]]" markers showing which page each section came from — use the nearest marker above a piece of text as its "page" value.
+This is EXCERPT ${chunk.index + 1} (pages ${chunk.startPage}-${chunk.endPage}) of a larger document named "${documentLabel}". The excerpt contains "[[PAGE N]]" markers showing which page each section came from — use the nearest marker above a piece of text as its "page" value.
 
 Extract structured information from ONLY this excerpt and return ONLY a valid JSON object matching exactly this structure:
 
@@ -72,11 +124,19 @@ ${chunk.text}
 """`;
 
   try {
-    const rawText = await callGemini(prompt, 0.2, true, { maxRetries: CHUNK_RETRIES });
-    const data = parseGeminiJson<ChunkExtraction>(rawText);
+    const data = await completeJson<ChunkExtraction>(
+      { prompt, temperature: 0.2, json: true },
+      {
+        label: `api/analyze#chunk${chunk.index}`,
+        maxRetries: CHUNK_RETRIES,
+        maxJsonAttempts: JSON_ATTEMPTS,
+        validate: validateChunkExtraction,
+        onProviderUsed: tracker.note
+      }
+    );
     return { chunk, data };
   } catch (e) {
-    const message = e instanceof GeminiRequestError ? e.message : e instanceof Error ? e.message : 'Unknown error';
+    const message = e instanceof Error ? e.message : 'Unknown error';
     console.error(`[api/analyze] Chunk ${chunk.index} (pages ${chunk.startPage}-${chunk.endPage}) failed:`, message);
     return { chunk, error: message };
   }
@@ -123,15 +183,35 @@ const SYNTHESIS_SCHEMA = `{
   "recommendedActions": [ "string - a concrete action item for the citizen, covering the whole document" ]
 }`;
 
+function validateSynthesis(value: unknown): true | string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'the response must be a single JSON object';
+  }
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.documentType !== 'string' || !obj.documentType.trim()) {
+    return '"documentType" must be a non-empty string';
+  }
+  if (!obj.fiveQuestions || typeof obj.fiveQuestions !== 'object') {
+    return '"fiveQuestions" must be a JSON object';
+  }
+  if (obj.recommendedActions !== undefined && !Array.isArray(obj.recommendedActions)) {
+    return '"recommendedActions" must be a JSON array of strings';
+  }
+  return true;
+}
+
 async function synthesizeDocumentLevel(
   fileName: string,
   chunkSummaries: string[],
   clauseDigest: string,
-  openingText: string
+  openingText: string,
+  fileManifest: string,
+  tracker: ProviderTracker
 ): Promise<Record<string, unknown>> {
   const prompt = `You are LegalLingo, an AI assistant that helps Indian citizens understand legal and civic documents in plain language.
 
 You are given a per-section digest of a document named "${fileName}" that was too long to analyze in one pass, plus the opening text for concrete grounding (names, dates, parties). Using ONLY this information, produce a document-level summary.
+${fileManifest}
 
 Return ONLY a valid JSON object matching exactly this structure:
 
@@ -153,28 +233,67 @@ ${chunkSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 KEY CLAUSES FOUND (title [risk level]):
 ${clauseDigest}`;
 
-  const rawText = await callGemini(prompt, 0.3, true, { maxRetries: SYNTHESIS_RETRIES });
-  return parseGeminiJson<Record<string, unknown>>(rawText);
+  return completeJson<Record<string, unknown>>(
+    { prompt, temperature: 0.3, json: true },
+    {
+      label: 'api/analyze#synthesis',
+      maxRetries: SYNTHESIS_RETRIES,
+      maxJsonAttempts: JSON_ATTEMPTS,
+      validate: validateSynthesis,
+      onProviderUsed: tracker.note
+    }
+  );
+}
+
+/**
+ * Normalizes the three accepted request shapes into one combined document.
+ *
+ *   { documents: [{ fileName, pages }] }  — multi-file upload (current client)
+ *   { pages, fileName }                   — single-file upload
+ *   { text, fileName }                    — plain text (edited-OCR path)
+ */
+function readRequestDocuments(body: Record<string, unknown>, fileName: string): SourceDocument[] {
+  if (Array.isArray(body.documents) && body.documents.length > 0) {
+    return (body.documents as SourceDocument[])
+      .filter((d) => d && Array.isArray(d.pages))
+      .map((d, i) => ({
+        fileName: typeof d.fileName === 'string' && d.fileName.trim() ? d.fileName : `Document ${i + 1}`,
+        pages: d.pages
+      }));
+  }
+
+  if (Array.isArray(body.pages) && body.pages.length > 0) {
+    return [{ fileName, pages: body.pages as PageInput[] }];
+  }
+
+  if (typeof body.text === 'string' && body.text.trim()) {
+    return [{ fileName, pages: [{ pageNumber: 1, text: body.text }] }];
+  }
+
+  return [];
 }
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
-  let geminiCalls = 0;
+  const tracker = new ProviderTracker();
+  let llmCalls = 0;
 
   try {
     const body = await req.json();
     const fileName: string = body.fileName || 'Uploaded Document';
 
-    let pages: PageInput[] = Array.isArray(body.pages) ? body.pages : [];
-    if (pages.length === 0 && typeof body.text === 'string') {
-      // Backward-compatible fallback for callers still sending the old {text} shape.
-      pages = [{ pageNumber: 1, text: body.text }];
-    }
-    pages = pages.filter((p) => p && typeof p.text === 'string' && p.text.trim());
+    const documents = readRequestDocuments(body, fileName);
+    const combined = combineDocuments(documents);
+    const pages = combined.pages;
 
     if (pages.length === 0) {
       return NextResponse.json({ error: 'No document text provided' }, { status: 400 });
     }
+
+    const isMultiFile = combined.files.length > 1;
+    const documentLabel = isMultiFile
+      ? `${combined.files.length} documents (${combined.files.map((f) => f.fileName).join(', ')})`
+      : combined.files[0]?.fileName || fileName;
 
     const sections = splitIntoSections(pages);
     const chunks = buildChunks(sections);
@@ -184,14 +303,14 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Chunk-level extraction (batched, concurrency-limited, retried) ---
-    const chunkResults = await mapWithConcurrency(chunks, CHUNK_CONCURRENCY, (chunk) => extractChunk(chunk, fileName));
-    geminiCalls += chunks.length;
+    const chunkResults = await mapWithConcurrency(chunks, CHUNK_CONCURRENCY, (chunk) => extractChunk(chunk, fileName, tracker));
+    llmCalls += chunks.length;
 
     const succeeded = chunkResults.filter((r) => r.data);
     const failed = chunkResults.filter((r) => !r.data);
 
     // --- Deterministic merge, in document order ---
-    // Gemini doesn't always echo the [[PAGE N]] marker back as a JSON number
+    // Models don't always echo the [[PAGE N]] marker back as a JSON number
     // (sometimes a numeric string) — coerce so `page` is always a real number.
     const toPage = (value: unknown, fallback: number): number => {
       const n = Number(value);
@@ -199,22 +318,47 @@ export async function POST(req: NextRequest) {
     };
 
     let paragraphs = succeeded.flatMap((r) =>
-      (r.data!.paragraphs || []).map((p) => ({ page: toPage(p.page, r.chunk.startPage), original: p.original, simple: p.simple }))
+      (r.data!.paragraphs || []).map((p) => ({
+        page: toPage(p.page, r.chunk.startPage),
+        original: p.original,
+        simple: p.simple,
+        sourceFile: r.chunk.sourceFile
+      }))
     );
     let clauses = succeeded.flatMap((r) =>
-      (r.data!.importantClauses || []).map((c) => ({ ...c, page: toPage(c.page, r.chunk.startPage) }))
+      (r.data!.importantClauses || []).map((c) => ({
+        ...c,
+        page: toPage(c.page, r.chunk.startPage),
+        sourceFile: r.chunk.sourceFile
+      }))
     );
     let missingInfo = succeeded.flatMap((r) =>
-      (r.data!.missingInformation || []).map((m) => ({ ...m, page: toPage(m.page, r.chunk.startPage) }))
+      (r.data!.missingInformation || []).map((m) => ({
+        ...m,
+        page: toPage(m.page, r.chunk.startPage),
+        sourceFile: r.chunk.sourceFile
+      }))
     );
     let legalTerms = succeeded.flatMap((r) => r.data!.legalTerms || []);
 
-    paragraphs = dedupeItems(paragraphs, (p) => p.original);
-    clauses = dedupeItems(clauses, (c) => c.originalText || c.clauseTitle);
-    missingInfo = dedupeItems(missingInfo, (m) => m.title);
+    // Dedupe is scoped per source file: two different uploaded documents can
+    // legitimately share a clause title or a missing-info heading, and collapsing
+    // those across files would silently hide one document's finding.
+    const scoped = (sourceFile: string | undefined, text: string) => `${sourceFile || ''}::${text}`;
+
+    paragraphs = dedupeItems(paragraphs, (p) => scoped(p.sourceFile, p.original));
+    clauses = dedupeItems(clauses, (c) => scoped(c.sourceFile, c.originalText || c.clauseTitle));
+    missingInfo = dedupeItems(missingInfo, (m) => scoped(m.sourceFile, m.title));
+    // Glossary terms are document-agnostic, so they dedupe globally.
     legalTerms = dedupeItems(legalTerms, (t) => t.term);
 
-    const finalParagraphs = paragraphs.map((p, i) => ({ id: i + 1, original: p.original, simple: p.simple, page: p.page }));
+    const finalParagraphs = paragraphs.map((p, i) => ({
+      id: i + 1,
+      original: p.original,
+      simple: p.simple,
+      page: p.page,
+      ...(isMultiFile ? { sourceFile: p.sourceFile } : {})
+    }));
     const finalClauses = clauses.map((c, i) => ({
       id: `C${String(i + 1).padStart(3, '0')}`,
       clauseTitle: c.clauseTitle,
@@ -224,7 +368,8 @@ export async function POST(req: NextRequest) {
       recommendedAction: c.recommendedAction,
       riskLevel: c.riskLevel,
       category: c.category,
-      page: c.page
+      page: c.page,
+      ...(isMultiFile ? { sourceFile: c.sourceFile } : {})
     }));
     const finalMissingInfo = missingInfo.map((m, i) => ({
       id: `M${String(i + 1).padStart(3, '0')}`,
@@ -232,21 +377,41 @@ export async function POST(req: NextRequest) {
       whyItMatters: m.whyItMatters,
       whatYouCanDo: m.whatYouCanDo,
       severity: m.severity,
-      page: m.page
+      page: m.page,
+      ...(isMultiFile ? { sourceFile: m.sourceFile } : {})
     }));
 
     // --- Document-level synthesis over chunk summaries (not raw text again) ---
     const chunkSummaries = succeeded.map((r) => r.data!.chunkSummary).filter(Boolean);
-    const clauseDigest = finalClauses.map((c) => `${c.clauseTitle} [${c.riskLevel}]`).join('\n') || '(none extracted)';
-    const openingText = pages.map((p) => p.text).join('\n\n').slice(0, 3000);
+    const clauseDigest =
+      finalClauses
+        .map((c) => `${isMultiFile && c.sourceFile ? `[${c.sourceFile}] ` : ''}${c.clauseTitle} [${c.riskLevel}]`)
+        .join('\n') || '(none extracted)';
+
+    // Grounding text is sampled from each file rather than only the first, so a
+    // multi-file summary can name every document's parties instead of just one's.
+    const perFileBudget = Math.max(600, Math.floor(3000 / Math.max(combined.files.length, 1)));
+    const openingText = combined.files
+      .map((f) => {
+        const filePages = pages.filter((p) => p.pageNumber >= f.startPage && p.pageNumber <= f.endPage);
+        const head = filePages.map((p) => p.text).join('\n\n').slice(0, perFileBudget);
+        return isMultiFile ? `--- ${f.fileName} ---\n${head}` : head;
+      })
+      .join('\n\n');
+
+    const fileManifest = isMultiFile
+      ? `\nThis analysis covers ${combined.files.length} separate uploaded files, treated as one submission:\n${combined.files
+          .map((f) => `- "${f.fileName}" (pages ${f.startPage}-${f.endPage} of the combined document)`)
+          .join('\n')}\nDescribe them together, and where they differ or relate to each other, say so explicitly.`
+      : '';
 
     let synthesis: Record<string, unknown>;
     try {
-      synthesis = await synthesizeDocumentLevel(fileName, chunkSummaries, clauseDigest, openingText);
-      geminiCalls += 1;
+      synthesis = await synthesizeDocumentLevel(documentLabel, chunkSummaries, clauseDigest, openingText, fileManifest, tracker);
+      llmCalls += 1;
     } catch (e) {
       console.error('[api/analyze] Synthesis call failed:', e);
-      geminiCalls += 1;
+      llmCalls += 1;
       synthesis = {
         documentType: 'Legal Document',
         classificationConfidence: 50,
@@ -276,7 +441,15 @@ export async function POST(req: NextRequest) {
 
     const totalPages = pages.length;
     const totalMs = Date.now() - startTime;
-    const warnings = failed.map((r) => `Pages ${r.chunk.startPage}-${r.chunk.endPage}: analysis failed (${r.error})`);
+    const warnings = failed.map(
+      (r) =>
+        `${r.chunk.sourceFile ? `${r.chunk.sourceFile}, ` : ''}pages ${r.chunk.startPage}-${r.chunk.endPage}: analysis failed (${r.error})`
+    );
+    // Report the provider(s) that actually served the request, falling back to
+    // the configured one only if every call failed before reporting.
+    const configured = resolveProvider();
+    const provider = tracker.names || configured.name;
+    const model = tracker.models || configured.model;
 
     return NextResponse.json({
       documentType,
@@ -297,17 +470,27 @@ export async function POST(req: NextRequest) {
       analysisMeta: {
         fullyAnalyzed: failed.length === 0,
         totalPages,
+        totalFiles: combined.files.length,
+        files: combined.files.map((f) => ({
+          fileName: f.fileName,
+          startPage: f.startPage,
+          endPage: f.endPage,
+          pageCount: f.pageCount
+        })),
         totalChunks: chunks.length,
         chunksSucceeded: succeeded.length,
         chunksFailed: failed.length,
         warnings,
-        geminiCalls,
+        llmCalls,
+        provider,
+        model,
         totalMs
       }
     });
   } catch (e) {
-    if (e instanceof GeminiRequestError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
+    if (e instanceof LLMError) {
+      console.error('[api/analyze] LLM failure:', e.message);
+      return NextResponse.json({ error: e.message }, { status: statusForError(e) });
     }
     console.error('[api/analyze] Unexpected error:', e);
     return NextResponse.json({ error: 'Unexpected error during AI analysis' }, { status: 500 });

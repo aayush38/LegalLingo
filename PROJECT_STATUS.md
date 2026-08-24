@@ -71,20 +71,22 @@ chunked pipeline:
    chunks in document order, tagging each chunk with its page range. A single
    section bigger than the budget (one huge clause) gets split into overlapping
    7000-char windows rather than hard-truncated.
-4. **Chunk extraction**: each chunk gets its own Gemini call (concurrency-limited
+4. **Chunk extraction**: each chunk gets its own LLM call (concurrency-limited
    to 3 at a time, `mapWithConcurrency` in `route.ts`, retried up to 2x with
-   exponential backoff on 429/502/503/504 via `gemini.ts::callGemini`), extracting
+   exponential backoff via `llm.ts::completeJson`, plus up to 2 JSON-repair
+   re-prompts validated by `validateChunkExtraction`), extracting
    paragraphs/clauses/missing-info/legal-terms *for that chunk only*, each item
    tagged with a page number via an inline `[[PAGE N]]` marker the prompt asks
-   Gemini to echo back.
+   the model to echo back. Chunks never span two uploaded files.
 5. **Merge**: chunk results are concatenated in order, then deduped
    (`dedupeItems` — normalizes text, drops near-duplicates from chunk-boundary
    overlap) and given sequential IDs.
-6. **Synthesis**: one final Gemini call over the chunk summaries (not raw text
+6. **Synthesis**: one final LLM call over the chunk summaries (not raw text
    again) produces document-level fields — type, summary, five-questions,
    completeness breakdown, recommended actions.
-7. Response includes `analysisMeta: {fullyAnalyzed, totalPages, totalChunks,
-   chunksSucceeded, chunksFailed, warnings, geminiCalls, totalMs}` — an honest
+7. Response includes `analysisMeta: {fullyAnalyzed, totalPages, totalFiles,
+   files[], totalChunks, chunksSucceeded, chunksFailed, warnings, llmCalls,
+   provider, model, totalMs}` — an honest
    signal of whether the whole document was actually covered, not just a silent
    best-effort. If any chunk fails after retries, `fullyAnalyzed: false` and the
    failed page range is named in `warnings`, but everything that *did* succeed is
@@ -98,30 +100,124 @@ chars), the two overlapping windows show up as two adjacent paragraph cards
 rather than being re-stitched into one seamless paragraph. No content is lost —
 it's a presentation nuance, not data loss.
 
-## AI integration
+## AI integration — provider abstraction layer
 
-`src/lib/gemini.ts` is the single shared entry point for every Gemini call in the
-app — do not call the REST API directly from a route, use `callGemini(prompt,
-temperature, json, {maxRetries})`. It:
-- Reads `GEMINI_API_KEY` from `process.env` (server-side only, works because
-  Next.js auto-loads the root `.env`).
-- Calls `gemini-flash-lite-latest` via direct REST `fetch` (no SDK dependency).
-  **This model name matters** — `gemini-1.5-flash` (old default in some sample
-  code) is deprecated/404s, `gemini-flash-latest` and `gemini-2.5-flash` were
-  found overloaded/deprecated during testing. Re-verify against `ListModels` if
-  Gemini calls start failing — model availability shifts over time.
-- Optionally retries on retryable HTTP statuses (429/502/503/504) with
-  exponential backoff — pass `{maxRetries: N}` explicitly; default is 0 (no
-  retry) to avoid changing behavior for existing low-stakes callers.
-- `parseGeminiJson` / `sanitizeJsonEscapes`: Gemini's `responseMimeType:
-  'application/json'` mode still occasionally emits invalid JSON (a literal
-  backslash that isn't a valid escape, or once, an unquoted bare word in an
-  array). The sanitizer fixes the escape case; there's no recovery for
-  structurally broken JSON beyond that — those calls just fail and get retried
-  or reported as a chunk failure.
+**Every LLM call goes through `src/lib/llm.ts`. No route imports a provider
+module directly.** This was a deliberate de-risking of vendor lock-in; keep it
+that way when adding features.
 
-Three routes use this: `/api/analyze` (document analysis, above), `/api/translate`
-(batch string translation), `/api/chat` (grounded chatbot).
+```
+route handler  ->  llm.ts  ->  llmTypes.ts (contract)
+                     |
+                     +-->  gemini.ts   (geminiProvider)
+                     +-->  ollama.ts   (ollamaProvider — Llama-family, local)
+```
+
+`llmTypes.ts` holds the `LLMProvider` interface and `LLMError` and imports
+nothing. That exists purely to break the cycle that would otherwise form
+(`llm.ts` imports the providers, providers need the interface). Do not move
+those types back into `llm.ts`.
+
+### Public API of `llm.ts`
+
+- `completeText(request, options)` — plain text completion.
+- `completeJson<T>(request, options)` — completion that returns parsed,
+  **validated** JSON or throws.
+- `resolveProvider(override?)` / `listProviders()` — which backend will serve.
+- `parseLlmJson`, `extractJsonBody`, `sanitizeJsonEscapes`, `coerceJsonArray` —
+  JSON repair helpers.
+- `statusForError(e)` — maps an error to an HTTP status for the response.
+
+### Provider selection
+
+Resolved per call, reading env every time (so switching needs no code change,
+and in production no restart of the module):
+
+1. explicit `options.provider`
+2. `LLM_PROVIDER` env (`gemini` | `ollama`)
+3. first provider reporting `isConfigured()` — gemini, then ollama
+
+`LLM_FALLBACK_PROVIDER` names an optional secondary tried only when the primary
+fails outright. Verified working: with `LLM_PROVIDER=ollama` pointed at a dead
+port and `LLM_FALLBACK_PROVIDER=gemini`, all three endpoints still return 200.
+
+### Two independent retry layers — don't conflate them
+
+- **`maxRetries`** — transport failures. Exponential backoff (1s, 2s, 4s +
+  jitter) on retryable statuses (408/429/500/502/503/504) and on network errors
+  (status `0`). Permanent failures (400/401/403/404, missing API key) are marked
+  `permanent` on `LLMError` and fail immediately without burning quota.
+- **`maxJsonAttempts`** (default 3) — the model answered fine but the JSON was
+  malformed or structurally wrong. Re-prompts with the *specific* complaint
+  appended ("your previous response was rejected because: ..."), which is what
+  lets a weaker model self-correct. Supply `validate` to define "structurally
+  wrong" for your call site.
+
+`validate` returns `true` or a short human-readable problem string; that string
+is what gets fed back to the model. See `validateChunkExtraction` and
+`validateSynthesis` in `/api/analyze` for the pattern.
+
+### Provider quirks that shaped the design
+
+- **Ollama's `format: "json"` can only emit a top-level JSON _object_.** A bare
+  top-level array is unreachable there. `/api/translate` therefore asks for
+  `{"translations": [...]}` rather than a bare array, and unwraps with
+  `coerceJsonArray`. Gemini handles the object form equally well, so one prompt
+  serves both. **If you add an endpoint that wants an array, do the same.**
+- Local models routinely wrap JSON in ```` ```json ```` fences or add a prose
+  preamble. `extractJsonBody` strips both before parsing.
+- Gemini's JSON mode still occasionally emits an invalid escape;
+  `sanitizeJsonEscapes` repairs that case.
+- Model names drift. `gemini-1.5-flash` 404s, `gemini-2.5-flash` and
+  `gemini-flash-latest` were unavailable/overloaded during testing. Current
+  default is `gemini-flash-lite-latest`, overridable with `GEMINI_MODEL`.
+
+### Measured provider comparison (same code, same documents, only env changed)
+
+| | Gemini `flash-lite` | Ollama `llama3.2:3b` (GTX 1650, 4GB) |
+|---|---|---|
+| 2-page lease analyze | ~8s | ~56-63s |
+| multi-file analyze (3 pages) | ~8s | ~78-93s |
+| chat reply | ~0.8-1s | ~1-82s (cold load) |
+| Hindi translation | correct | **unusable gibberish** |
+
+**Ollama is a working escape hatch, not a drop-in replacement.** The 3B model
+handles English clause extraction acceptably but cannot produce Indic-script
+translation. Anything larger will not fit this machine's 4GB VRAM and will spill
+to CPU. Keep Gemini as the default.
+
+Routes using the layer: `/api/analyze`, `/api/translate`, `/api/chat`.
+
+## Multi-file upload and document combining
+
+The upload input is `multiple`; `MAX_FILES_PER_UPLOAD` (10) caps a batch.
+
+- `ocr.ts / processDocumentFiles(files, onProgress)` extracts each file
+  **sequentially** — pdfjs and Tesseract are main-thread CPU-bound, so running
+  them concurrently only makes the page janky. Each file gets its own band of
+  the progress bar. One file failing does not fail the batch.
+- `documentChunking.ts / combineDocuments(docs)` merges files into one logical
+  document: pages are **renumbered continuously** across files, and each page
+  keeps `sourceFile` plus its original in-file `sourcePage`.
+- **`buildChunks` never lets a chunk span two source files.** The in-progress
+  chunk is flushed at each file boundary. Mixing two unrelated agreements into
+  one excerpt makes the model conflate their parties and amounts, which is worth
+  the occasional short chunk. This is the "preserve chunk boundaries"
+  requirement — if you touch the chunker, keep it.
+- Dedup is **scoped per source file** (`sourceFile::text` fingerprint) for
+  paragraphs/clauses/missing-info: two documents can legitimately share a clause
+  title, and collapsing across files would hide one document's finding. Glossary
+  terms still dedupe globally.
+- Result items carry `sourceFile` **only for multi-file uploads**, so
+  single-file responses are byte-identical in shape to before.
+
+`analysisMeta` now reports `totalFiles`, a `files[]` array of per-file page
+ranges, `llmCalls` (renamed from `geminiCalls` — it is no longer Gemini-specific)
+and `provider`/`model` describing **what actually served the request**, which can
+differ from what was configured when the fallback engaged.
+
+`/api/analyze` accepts three request shapes, all still supported:
+`{documents: [{fileName, pages}]}` (current), `{pages, fileName}`, `{text, fileName}`.
 
 ## Multi-language support (en/hi/mr/gu)
 
@@ -235,9 +331,35 @@ ones.
 
 ## Environment
 
-Root `.env` (Next.js auto-loads it): `GEMINI_API_KEY` is the one that matters
-for everything described above. The backend/FastAPI `.env` usage is separate and
-irrelevant to the primary flow.
+Root `.env` (Next.js auto-loads it). The backend/FastAPI `.env` usage is separate
+and irrelevant to the primary flow.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GEMINI_API_KEY` | *(required for Gemini)* | The one that matters for the default setup. |
+| `GEMINI_MODEL` | `gemini-flash-lite-latest` | Override if the model name drifts again. |
+| `LLM_PROVIDER` | auto-detect | `gemini` or `ollama`. |
+| `LLM_FALLBACK_PROVIDER` | *(none)* | Secondary provider, tried only if the primary fails outright. |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Setting this **or** `OLLAMA_MODEL` marks Ollama configured. |
+| `OLLAMA_MODEL` | `llama3.1` | Any pulled model, e.g. `llama3.2:3b`. |
+| `OLLAMA_TIMEOUT_MS` | `120000` | Local generation is slow; `fetch` has no default timeout. |
+
+To run fully locally: `ollama pull llama3.2:3b`, then start with
+`LLM_PROVIDER=ollama OLLAMA_MODEL=llama3.2:3b OLLAMA_TIMEOUT_MS=300000 npm run dev`.
+Read the provider-comparison table above first — translation quality does not
+survive the switch.
+
+### Adding a new provider
+
+1. Create `src/lib/<name>.ts` exporting a `LLMProvider` (implement `name`,
+   `model`, `isConfigured()`, `complete()`). Import the contract from
+   `llmTypes.ts`, never from `llm.ts`.
+2. Throw `LLMError(message, status, name, permanent)` — set `permanent` for
+   client errors so retries don't burn quota; use status `0` for network
+   failures so they stay retryable.
+3. Add it to `PROVIDERS` and `PROVIDER_PREFERENCE` in `llm.ts`, and to the
+   `LLMProviderName` union in `llmTypes.ts`.
+4. No route changes are needed.
 
 ## Testing pattern used throughout this project's development
 
