@@ -132,31 +132,7 @@ export const DashboardOverview: React.FC = () => {
               </div>
             </button>
 
-            {/* 2. Document Health (Interactive Card) */}
-            <button
-              type="button"
-              onClick={() => setSelectedModal('health')}
-              className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all duration-200 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none flex flex-col justify-between w-full active:scale-[0.99]"
-              title={getTranslation('docHealth', language)}
-            >
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1 group-hover:text-emerald-700 transition-colors truncate">
-                  {getTranslation('docHealth', language)}
-                </span>
-                <p className="text-2xl font-black text-emerald-600">
-                  {healthScore}<span className="text-xs text-slate-400 font-bold">/100</span>
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 w-full">
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
-                  {getTranslation('healthScoreLabel', language)}
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-transform duration-200 flex-shrink-0" />
-              </div>
-            </button>
-
-            {/* 3. Legal Dictionary (Interactive Card) */}
+            {/* 2. Legal Dictionary (Interactive Card) */}
             <button
               type="button"
               onClick={() => setSelectedModal('dictionary')}
@@ -180,7 +156,7 @@ export const DashboardOverview: React.FC = () => {
               </div>
             </button>
 
-            {/* 4. Government Services (Interactive Card) */}
+            {/* 3. Government Services (Interactive Card) */}
             <button
               type="button"
               onClick={() => setSelectedModal('services')}
@@ -201,6 +177,30 @@ export const DashboardOverview: React.FC = () => {
                   {getTranslation('portalsCountLabel', language)}
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-transform duration-200 flex-shrink-0" />
+              </div>
+            </button>
+
+            {/* 4. Document Health (Interactive Card) */}
+            <button
+              type="button"
+              onClick={() => setSelectedModal('health')}
+              className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all duration-200 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none flex flex-col justify-between w-full active:scale-[0.99]"
+              title={getTranslation('docHealth', language)}
+            >
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1 group-hover:text-emerald-700 transition-colors truncate">
+                  {getTranslation('docHealth', language)}
+                </span>
+                <p className="text-2xl font-black text-emerald-600">
+                  {healthScore}<span className="text-xs text-slate-400 font-bold">/100</span>
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 w-full">
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
+                  {getTranslation('healthScoreLabel', language)}
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-transform duration-200 flex-shrink-0" />
               </div>
             </button>
 
