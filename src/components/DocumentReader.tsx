@@ -57,9 +57,6 @@ export const DocumentReader: React.FC<DocumentReaderProps> = () => {
           <h2 className="text-2xl sm:text-3xl font-black text-emerald-950">
             {getTranslation('weReadYourDoc', language)}
           </h2>
-          <p className="text-sm font-medium text-gray-500 mt-0.5">
-            {getTranslation('readerSubText', language)}
-          </p>
         </div>
 
         {/* View Mode Tabs */}

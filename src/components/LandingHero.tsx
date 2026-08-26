@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, MessageSquare } from 'lucide-react';
 import { UploadDropzone } from './UploadDropzone';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
@@ -52,8 +52,9 @@ export const LandingHero: React.FC = () => {
             type="button"
             onClick={() => setIsChatOpen(true)}
             aria-label={getTranslation('chatbotLauncherLabel', language)}
-            className="min-h-[48px] px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-black text-sm shadow-2xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95 border-2 border-emerald-400 focus-visible:ring-4 focus-visible:ring-emerald-300 focus-visible:outline-none cursor-pointer"
+            className="min-h-[48px] px-5 sm:px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-black text-sm shadow-2xl flex items-center justify-center gap-2.5 transition-transform hover:scale-105 active:scale-95 border-2 border-emerald-400 focus-visible:ring-4 focus-visible:ring-emerald-300 focus-visible:outline-none cursor-pointer"
           >
+            <MessageSquare className="w-5 h-5 text-emerald-200 flex-shrink-0" aria-hidden="true" />
             <span>{getTranslation('chatbotLauncherLabel', language)}</span>
           </button>
         </div>

@@ -37,10 +37,6 @@ export const DocumentHealthScore: React.FC = () => {
         </div>
       </div>
 
-      <p className="text-xs font-semibold text-gray-500 mb-6">
-        {getTranslation('completenessIndicator', language)}
-      </p>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {items.map((item, idx) => (
           <div key={idx} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">

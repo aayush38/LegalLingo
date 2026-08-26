@@ -31,10 +31,6 @@ export const DifficultWordsGlossary: React.FC = () => {
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 font-semibold mb-5">
-        {getTranslation('difficultSubText', language)}
-      </p>
-
       {/* Terms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {currentAnalysis.legalTerms.map((term, idx) => {

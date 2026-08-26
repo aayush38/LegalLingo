@@ -98,9 +98,10 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Disclaimer
     disclaimerTitle: 'Legal & Civic Disclaimer',
-    disclaimerText: 'LegalLingo provides AI-assisted legal information and document understanding for awareness purposes. It does not constitute legal advice or replace consultation with a qualified legal professional.',
+    disclaimerText: 'LegalLingo provides AI-assisted information to help you understand your document. It is not legal advice and does not replace a qualified lawyer. For important legal or government matters, please verify the information with the appropriate official government office or a qualified legal professional.',
+    disclaimerTextSuffix: '',
 
-    // Batch-added keys (translation coverage fix)
+    // UI Headings & Labels
     taglineHeroTitle: 'Understand. Ask. Move Forward.',
     confidenceSuffix: 'Confidence',
     completenessHighLabel: 'Completeness High',
@@ -124,7 +125,6 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     navTagline: 'Legal made simple. Government services accessible.',
     privacyShieldTooltip: 'Mask personal details like Aadhaar, PAN, and phone numbers',
     languageColonLabel: 'Language:',
-    disclaimerTextSuffix: 'Important legal and government information should be verified from official government sources (such as Mahabhulekh 7/12 & IGR Maharashtra).',
     footerBrandTagline: 'Legal made simple. Government services made accessible. Civic Tech Platform for Citizens.',
     coreCapabilitiesLabel: 'Core Capabilities',
     capabilityOcr: 'OCR PDF & Image Text Extraction',
@@ -149,7 +149,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     stageRiskAudit: 'Risk & Scheme audit',
     stageReady: 'LegalLingo Ready',
     uploadDocHeadline: 'Upload Your Legal Document',
-    uploadDocSubText: 'Upload Sale Agreements, Land 7/12, Rent Agreements, Loans or Legal Notices. Supports',
+    uploadDocSubText: 'Supports PDF, JPG, JPEG, PNG',
     uploadMultipleHint: 'You can select more than one file — they will be analyzed together as one submission.',
     privateEncryptedBadge: '100% Private & Encrypted',
     automaticOcrBadge: 'Automatic OCR Text Extraction',
@@ -382,10 +382,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     viewGuidance: 'मार्गदर्शन देखें',
 
     // Disclaimer
-    disclaimerTitle: 'कानूनी अस्वीकरण',
-    disclaimerText: 'लीगल लिंगो केवल जागरूकता के लिए AI-सहायता प्राप्त जानकारी प्रदान करता है। यह औपचारिक कानूनी सलाह नहीं है।',
+    disclaimerTitle: 'कानूनी और नागरिक अस्वीकरण',
+    disclaimerText: 'लीगललिंगो आपके दस्तावेज़ को समझने में मदद के लिए एआई-सहायता प्राप्त जानकारी प्रदान करता है। यह कानूनी सलाह नहीं है और किसी योग्य वकील का विकल्प नहीं है। महत्वपूर्ण कानूनी या सरकारी मामलों के लिए, कृपया संबंधित आधिकारिक सरकारी कार्यालय या किसी योग्य कानूनी विशेषज्ञ से जानकारी की पुष्टि करें।',
+    disclaimerTextSuffix: '',
 
-    // Batch-added keys (translation coverage fix)
+    // UI Headings & Labels
     taglineHeroTitle: 'समझें. पूछें. आगे बढ़ें.',
     confidenceSuffix: 'भरोसा',
     completenessHighLabel: 'पूर्णता उच्च',
@@ -409,7 +410,6 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     navTagline: 'कानून हुआ आसान। सरकारी सेवाएँ सुलभ।',
     privacyShieldTooltip: 'Aadhaar, PAN और फोन नंबर जैसी व्यक्तिगत जानकारी को छिपाएं',
     languageColonLabel: 'भाषा:',
-    disclaimerTextSuffix: 'महत्वपूर्ण कानूनी और सरकारी जानकारी की पुष्टि आधिकारिक सरकारी स्रोतों (जैसे महाभूलेख 7/12 और आईजीआर महाराष्ट्र) से की जानी चाहिए।',
     footerBrandTagline: 'कानून को आसान बनाया गया। सरकारी सेवाओं को सुलभ बनाया गया। नागरिकों के लिए सिविक टेक प्लेटफॉर्म।',
     coreCapabilitiesLabel: 'मुख्य क्षमताएं',
     capabilityOcr: 'OCR पीडीएफ और इमेज टेक्स्ट एक्सट्रैक्शन',
@@ -434,7 +434,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     stageRiskAudit: 'जोखिम और योजना की जांच',
     stageReady: 'लीगललिंगो तैयार है',
     uploadDocHeadline: 'अपना कानूनी दस्तावेज़ अपलोड करें',
-    uploadDocSubText: 'सेल एग्रीमेंट, ज़मीन का 7/12, रेंट एग्रीमेंट, लोन या कानूनी नोटिस अपलोड करें। समर्थन करता है',
+    uploadDocSubText: 'PDF, JPG, JPEG, PNG समर्थित है',
     uploadMultipleHint: 'आप एक से ज़्यादा फ़ाइल चुन सकते हैं — उन सभी का विश्लेषण एक साथ किया जाएगा।',
     privateEncryptedBadge: '100% निजी और एन्क्रिप्टेड',
     automaticOcrBadge: 'स्वचालित ओसीआर (OCR) टेक्स्ट निकालना',
@@ -667,10 +667,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     viewGuidance: 'मार्गदर्शन पहा',
 
     // Disclaimer
-    disclaimerTitle: 'कायदेशीर सुचना',
-    disclaimerText: 'लीगल लिंगो केवळ जनजागृतीसाठी AI-सहाय्यित माहिती प्रदान करते. हा औपचारिक कायदेशीर सल्ला नाही.',
+    disclaimerTitle: 'कायदेशीर आणि नागरी सूचना',
+    disclaimerText: 'लीगललिंगो तुमचे कागदपत्र समजून घेण्यासाठी एआय-आधारित माहिती पुरवते. हा कायदेशीर सल्ला नाही आणि पात्र वकिलाचा पर्याय नाही. महत्त्वाच्या कायदेशीर किंवा शासकीय बाबींसाठी, कृपया संबंधित अधिकृत सरकारी कार्यालयातून किंवा कायदेशीर तज्ज्ञांकडून माहितीची पडताळणी करा.',
+    disclaimerTextSuffix: '',
 
-    // Batch-added keys (translation coverage fix)
+    // UI Headings & Labels
     taglineHeroTitle: 'समजून घ्या. विचारा. पुढे जा.',
     confidenceSuffix: 'विश्वास',
     completenessHighLabel: 'पूर्णता उच्च',
@@ -694,7 +695,6 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     navTagline: 'कायदे सोपे केले. सरकारी सेवा प्रवेशयोग्य.',
     privacyShieldTooltip: 'आधार, पॅन आणि फोन नंबर सारखी वैयक्तिक माहिती लपवा',
     languageColonLabel: 'भाषा:',
-    disclaimerTextSuffix: 'महत्त्वपूर्ण कायदेशीर आणि सरकारी माहितीची पडताळणी अधिकृत सरकारी स्रोतांकडून (जसे की महाभूलेख ७/१२ आणि आयजीआर महाराष्ट्र) केली पाहिजे.',
     footerBrandTagline: 'कायद्याचे सोप्या भाषेत स्पष्टीकरण. सरकारी सेवा सुलभ केल्या. नागरिकांसाठी सिविक टेक प्लॅटफॉर्म.',
     coreCapabilitiesLabel: 'महत्त्वाच्या क्षमता',
     capabilityOcr: 'OCR पीडीएफ आणि इमेज टेक्स्ट एक्सट्रॅक्शन',
@@ -719,7 +719,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     stageRiskAudit: 'जोखीम आणि योजना तपासणी',
     stageReady: 'लीगललिंगो तयार आहे',
     uploadDocHeadline: 'तुमचा कायदेशीर दस्तऐवज अपलोड करा',
-    uploadDocSubText: 'खरेदी करार, जमिनीचा ७/१२ उतारा, भाडेकरार, कर्जे किंवा कायदेशीर नोटीस अपलोड करा. समर्थन करतो',
+    uploadDocSubText: 'PDF, JPG, JPEG, PNG समर्थित आहे',
     uploadMultipleHint: 'तुम्ही एकापेक्षा जास्त फाइल निवडू शकता — त्या सर्वांचे एकत्रित विश्लेषण केले जाईल.',
     privateEncryptedBadge: '१००% खाजगी आणि एन्क्रिप्टेड',
     automaticOcrBadge: 'स्वयंचलित ओसीआर (OCR) मजकूर काढणे',
@@ -952,10 +952,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     viewGuidance: 'માર્ગદર્શન જુઓ',
 
     // Disclaimer
-    disclaimerTitle: 'કાનૂની સૂચના',
-    disclaimerText: 'લીગલ લિંગો માત્ર જાગરૂકતા માટે AI સપોર્ટેડ માહિતી આપે છે.',
+    disclaimerTitle: 'કાનૂની અને નાગરિક અસ્વીકરણ',
+    disclaimerText: 'લીગલલિંગો તમને તમારા દસ્તાવેજને સમજવામાં મદદ કરવા માટે AI-આધારિત માહિતી પ્રદાન કરે છે. આ કાનૂની સલાહ નથી અને કોઈ યોગ્ય વકીલનો વિકલ્પ નથી. મહત્વપૂર્ણ કાનૂની અથવા સરકારી બાબતો માટે, કૃપા કરીને સંબંધિત સત્તાવાર સરકારી કચેરી અથવા કાનૂની નિષ્ણાત પાસેથી માહિતીની ચકાસણી કરો.',
+    disclaimerTextSuffix: '',
 
-    // Batch-added keys (translation coverage fix)
+    // UI Headings & Labels
     taglineHeroTitle: 'સમજો. પૂછો. આગળ વધો.',
     confidenceSuffix: 'વિશ્વાસ',
     completenessHighLabel: 'પૂર્ણતા ઉચ્ચ',
@@ -979,7 +980,6 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     navTagline: 'કાયદો સરળ બનાવ્યો. સરકારી સેવાઓ સુલભ છે.',
     privacyShieldTooltip: 'આધાર, પાન અને ફોન નંબરો જેવી વ્યક્તિગત વિગતો છુપાવો',
     languageColonLabel: 'ભાષા:',
-    disclaimerTextSuffix: 'મહત્વપૂર્ણ કાનૂની અને સરકારી માહિતી સત્તાવાર સરકારી સ્ત્રોતો (જેવા કે મહાભૂલેખ 7/12 અને IGR મહારાષ્ટ્ર) પરથી ચકાસવી જોઈએ.',
     footerBrandTagline: 'કાયદો સરળ બન્યો. સરકારી સેવાઓ સુલભ બની. નાગરિકો માટેનું સિવિક ટેક પ્લેટફોર્મ.',
     coreCapabilitiesLabel: 'મુખ્ય ક્ષમતાઓ',
     capabilityOcr: 'OCR PDF અને ઇમેજ ટેક્સ્ટ એક્સટ્રેક્શન',
@@ -1004,7 +1004,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     stageRiskAudit: 'જોખમ અને યોજના ઓડિટ',
     stageReady: 'લીગલલિંગો તૈયાર છે',
     uploadDocHeadline: 'તમારો કાનૂની દસ્તાવેજ અપલોડ કરો',
-    uploadDocSubText: 'વેચાણ કરાર, જમીનનો 7/12, ભાડા કરાર, લોન અથવા લીગલ નોટિસ અપલોડ કરો. આને સપોર્ટ કરે છે',
+    uploadDocSubText: 'PDF, JPG, JPEG, PNG સપોર્ટેડ છે',
     uploadMultipleHint: 'તમે એક કરતાં વધુ ફાઇલ પસંદ કરી શકો છો — તે બધાનું એકસાથે વિશ્લેષણ કરવામાં આવશે.',
     privateEncryptedBadge: '૧૦૦% ખાનગી અને એન્ક્રિપ્ટેડ',
     automaticOcrBadge: 'આપમેળે OCR ટેક્સ્ટ બહાર કાઢવો',

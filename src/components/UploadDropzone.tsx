@@ -351,11 +351,8 @@ export const UploadDropzone: React.FC = () => {
           <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">
             {getTranslation('uploadDocHeadline', language)}
           </h2>
-          <p className="text-sm text-gray-600 font-medium max-w-md mx-auto mb-6">
-            {getTranslation('uploadDocSubText', language)}{' '}
-            <span className="font-bold text-emerald-700">PDF, JPG, JPEG, PNG</span>.
-            <br />
-            <span className="text-xs text-gray-500">{getTranslation('uploadMultipleHint', language)}</span>
+          <p className="text-sm font-bold text-emerald-800 max-w-md mx-auto mb-6">
+            {getTranslation('uploadDocSubText', language)}
           </p>
 
           {/* Primary & Secondary Action Buttons */}
