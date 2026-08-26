@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { UploadDropzone } from './UploadDropzone';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
@@ -17,12 +17,6 @@ export const LandingHero: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-6 pb-10">
         
-        {/* Civic Tech Platform Badge */}
-        <div className="inline-flex items-center gap-2 bg-emerald-900/90 backdrop-blur-md px-4 py-1.5 rounded-full text-emerald-100 text-xs sm:text-sm font-black border border-emerald-400/40 mb-6 shadow-sm">
-          <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
-          <span>Civic Tech Platform</span>
-        </div>
-
         {/* Hero Tagline: Bold & Black as requested */}
         <div className="mb-4">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight text-black bg-white py-3 px-8 rounded-3xl inline-block border-2 border-emerald-400 shadow-xl">
