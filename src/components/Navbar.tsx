@@ -7,6 +7,7 @@ import { ShieldCheck, ShieldAlert, Globe, FileText, Landmark, FolderHeart, Menu,
 import { useApp } from '@/context/AppContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@/lib/types';
 import { getTranslation } from '@/lib/translations';
+import { UserMenu } from './UserMenu';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -116,6 +117,8 @@ export const Navbar: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            <UserMenu />
           </div>
 
           {/* Mobile Menu Trigger */}
@@ -177,6 +180,10 @@ export const Navbar: React.FC = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="pt-2 border-t border-gray-100 flex justify-start">
+            <UserMenu compact />
           </div>
         </div>
       )}

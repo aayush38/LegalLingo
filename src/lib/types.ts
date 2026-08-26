@@ -1,3 +1,5 @@
+import type { RiskFinding, RiskEngineSummary } from './risk/types';
+
 export type LanguageCode = 'en' | 'hi' | 'mr' | 'gu';
 
 export interface LanguageOption {
@@ -66,6 +68,8 @@ export interface MissingInfoItem {
 
 export interface AnalyzedFileInfo {
   fileName: string;
+  role?: 'primary' | 'supporting';
+  docType?: string;
   /** Inclusive page range this file occupies in the combined document. */
   startPage: number;
   endPage: number;
@@ -77,6 +81,8 @@ export interface AnalysisMeta {
   totalPages: number;
   /** Number of source files combined into this analysis (1 for a single upload). */
   totalFiles: number;
+  /** How many of those were verification documents rather than the agreement. */
+  supportingFiles?: number;
   files: AnalyzedFileInfo[];
   totalChunks: number;
   chunksSucceeded: number;
@@ -139,7 +145,30 @@ export interface DocumentAnalysis {
   isScanned?: boolean;
   /** Names of every file in this submission — length > 1 for multi-file uploads. */
   sourceFiles?: string[];
+  /**
+   * Verification documents submitted alongside the primary agreement. These are
+   * mined for corroborating facts rather than simplified clause-by-clause.
+   */
+  supportingDocuments?: {
+    fileName: string;
+    docType?: string;
+    startPage?: number;
+    endPage?: number;
+    summary?: string;
+    keyFacts?: { label: string; value: string; page: number }[];
+    extractionFailed?: boolean;
+  }[];
   analysisMeta?: AnalysisMeta;
+  /**
+   * Deterministic Risk Engine output. Optional so existing sample fixtures and
+   * any previously saved document still render — the UI falls back to
+   * LLM-assigned clause risk levels when this is absent.
+   */
+  riskEngine?: {
+    findings: RiskFinding[];
+    summary: RiskEngineSummary;
+    version: string;
+  };
 }
 
 export interface GovernmentScheme {
@@ -167,3 +196,12 @@ export interface ChatMessage {
   timestamp: string;
   audioUrl?: string;
 }
+
+export type {
+  RiskFinding,
+  RiskSeverity,
+  RiskConfidence,
+  RiskEvidence,
+  RiskEngineSummary,
+  RiskEngineResult
+} from './risk/types';

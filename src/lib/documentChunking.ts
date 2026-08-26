@@ -1,3 +1,6 @@
+/** Mirrors ocr.ts DocumentRole; redeclared here so this module stays dependency-free. */
+export type DocumentRole = 'primary' | 'supporting';
+
 export interface PageInput {
   /** Page number within the combined document (1-based, continuous across files). */
   pageNumber: number;
@@ -6,15 +9,23 @@ export interface PageInput {
   sourceFile?: string;
   /** Page number within its own source file, before combining renumbered it. */
   sourcePage?: number;
+  /** Whether this page belongs to the agreement itself or to a supporting document. */
+  role?: DocumentRole;
+  /** Label of the supporting document, e.g. 'NOC / Release Letter'. */
+  docType?: string;
 }
 
 export interface SourceDocument {
   fileName: string;
   pages: PageInput[];
+  role?: DocumentRole;
+  docType?: string;
 }
 
 export interface FileRange {
   fileName: string;
+  role: DocumentRole;
+  docType?: string;
   /** Inclusive page range this file occupies in the combined document. */
   startPage: number;
   endPage: number;
@@ -32,6 +43,8 @@ export interface Section {
   page: number;
   text: string;
   sourceFile?: string;
+  role?: DocumentRole;
+  docType?: string;
 }
 
 export interface Chunk {
@@ -43,6 +56,9 @@ export interface Chunk {
   sections: Section[];
   /** File all sections in this chunk came from — chunks never span two files. */
   sourceFile?: string;
+  /** Role of that file. Supporting-document chunks get a facts-only prompt. */
+  role?: DocumentRole;
+  docType?: string;
 }
 
 const MAX_CHARS_PER_CHUNK = 8000;
@@ -80,12 +96,16 @@ export function combineDocuments(docs: SourceDocument[]): CombinedDocument {
         pageNumber: pages.length + 1,
         text: page.text,
         sourceFile: doc.fileName,
-        sourcePage: page.pageNumber
+        sourcePage: page.pageNumber,
+        role: doc.role ?? 'primary',
+        docType: doc.docType
       });
     }
 
     files.push({
       fileName: doc.fileName,
+      role: doc.role ?? 'primary',
+      docType: doc.docType,
       startPage,
       endPage: pages.length,
       pageCount: usable.length,
@@ -113,26 +133,28 @@ export function splitIntoSections(pages: PageInput[]): Section[] {
     });
 
     const sourceFile = page.sourceFile;
+    const role = page.role;
+    const docType = page.docType;
 
     if (headingIndices.length >= 1) {
       // Text before the first heading (if any) is its own section.
       if (headingIndices[0] > 0) {
         const pre = lines.slice(0, headingIndices[0]).join('\n').trim();
-        if (pre) sections.push({ page: page.pageNumber, text: pre, sourceFile });
+        if (pre) sections.push({ page: page.pageNumber, text: pre, sourceFile, role, docType });
       }
       for (let i = 0; i < headingIndices.length; i++) {
         const start = headingIndices[i];
         const end = i + 1 < headingIndices.length ? headingIndices[i + 1] : lines.length;
         const text = lines.slice(start, end).join('\n').trim();
-        if (text) sections.push({ page: page.pageNumber, text, sourceFile });
+        if (text) sections.push({ page: page.pageNumber, text, sourceFile, role, docType });
       }
     } else {
       // No numbered headings on this page — fall back to paragraph splitting.
       const paras = page.text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
       if (paras.length > 0) {
-        for (const p of paras) sections.push({ page: page.pageNumber, text: p, sourceFile });
+        for (const p of paras) sections.push({ page: page.pageNumber, text: p, sourceFile, role, docType });
       } else if (page.text.trim()) {
-        sections.push({ page: page.pageNumber, text: page.text.trim(), sourceFile });
+        sections.push({ page: page.pageNumber, text: page.text.trim(), sourceFile, role, docType });
       }
     }
   }
@@ -143,14 +165,14 @@ export function splitIntoSections(pages: PageInput[]): Section[] {
 /** Splits a single oversized section into overlapping windows so a clause larger
  * than the chunk budget never gets hard-truncated at an arbitrary character cut. */
 function splitOversizedSection(section: Section): Section[] {
-  const { text, page, sourceFile } = section;
+  const { text, page, sourceFile, role, docType } = section;
   if (text.length <= MAX_CHARS_PER_CHUNK) return [section];
 
   const windows: Section[] = [];
   let start = 0;
   while (start < text.length) {
     const end = Math.min(start + OVERSIZED_WINDOW, text.length);
-    windows.push({ page, text: text.slice(start, end), sourceFile });
+    windows.push({ page, text: text.slice(start, end), sourceFile, role, docType });
     if (end >= text.length) break;
     start = end - OVERSIZED_OVERLAP;
   }
@@ -182,7 +204,9 @@ export function buildChunks(sections: Section[], maxChars = MAX_CHARS_PER_CHUNK)
       endPage: current[current.length - 1].page,
       text: current.map((s) => `[[PAGE ${s.page}]]\n${s.text}`).join('\n\n'),
       sections: current,
-      sourceFile: current[0].sourceFile
+      sourceFile: current[0].sourceFile,
+      role: current[0].role,
+      docType: current[0].docType
     });
     current = [];
     currentLen = 0;

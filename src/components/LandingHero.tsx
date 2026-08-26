@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Mic, BookOpenCheck, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BookOpenCheck, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 import { UploadDropzone } from './UploadDropzone';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
 
 export const LandingHero: React.FC = () => {
-  const { setIsChatOpen, language } = useApp();
+  const { language } = useApp();
 
   return (
     <section className="relative pt-6 pb-12 overflow-hidden">
@@ -39,19 +39,6 @@ export const LandingHero: React.FC = () => {
           <p className="text-sm sm:text-base text-slate-800 font-bold max-w-2xl mx-auto leading-relaxed">
             {getTranslation('heroSubText', language)}
           </p>
-        </div>
-
-        {/* Quick Voice Ask Button */}
-        <div className="flex justify-center mb-10">
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-black text-sm shadow-xl flex items-center gap-2.5 transition-transform hover:scale-105 border-2 border-emerald-400"
-          >
-            <div className="w-6 h-6 rounded-full bg-white text-emerald-800 flex items-center justify-center animate-bounce">
-              <Mic className="w-4 h-4" />
-            </div>
-            <span>{getTranslation('askByVoice', language)}</span>
-          </button>
         </div>
 
         {/* Embedded Upload Uploader Box */}

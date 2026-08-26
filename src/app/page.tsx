@@ -5,6 +5,8 @@ import { LandingHero } from '@/components/LandingHero';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { DocumentReader } from '@/components/DocumentReader';
 import { FiveQuestionsCard } from '@/components/FiveQuestionsCard';
+import { SupportingDocuments } from '@/components/SupportingDocuments';
+import { RiskEngineFindings } from '@/components/RiskEngineFindings';
 import { ClauseRiskAnalysis } from '@/components/ClauseRiskAnalysis';
 import { DocumentHealthScore } from '@/components/DocumentHealthScore';
 import { DifficultWordsGlossary } from '@/components/DifficultWordsGlossary';
@@ -38,6 +40,10 @@ export default function HomePage() {
           <FiveQuestionsCard />
 
           {/* Risk and Clause Analysis */}
+          <SupportingDocuments />
+          {/* Deterministic rule findings first; the LLM clause view stays below
+              as the explanatory detail and as the fallback when the engine is absent. */}
+          <RiskEngineFindings />
           <ClauseRiskAnalysis />
 
           {/* Document Health / AI Completeness Score Breakdown */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRelevantServicesForDocType } from '@/lib/govtServices';
 import { completeJson, LLMError, resolveProvider, statusForError, type LLMProvider } from '@/lib/llm';
+import { runRiskEngine } from '@/lib/risk/riskEngine';
 import {
   splitIntoSections,
   buildChunks,
@@ -10,6 +11,12 @@ import {
   type PageInput,
   type SourceDocument
 } from '@/lib/documentChunking';
+
+/** Coerces a model-reported page marker to a real number, falling back to the chunk start. */
+function toPageSafe(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 const CHUNK_CONCURRENCY = 3;
 const CHUNK_RETRIES = 2;
@@ -59,6 +66,35 @@ const CHUNK_SCHEMA = `{
   "legalTerms": [ { "term": "string - a difficult/legal word that actually appears in this excerpt", "simpleMeaning": "string", "simpleExample": "string" } ]
 }`;
 
+interface SupportingFact {
+  label: string;
+  value: string;
+  page: number;
+}
+interface SupportingExtraction {
+  docSummary: string;
+  keyFacts: SupportingFact[];
+}
+
+const SUPPORTING_SCHEMA = `{
+  "docSummary": "string - one sentence describing what this document is and what it establishes",
+  "keyFacts": [ { "label": "string - e.g. Name, Survey Number, Amount, Date, Issuing Authority", "value": "string - the exact value as written in the document", "page": "number - nearest [[PAGE N]] marker above" } ]
+}`;
+
+function validateSupportingExtraction(value: unknown): true | string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'the response must be a single JSON object';
+  }
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.docSummary !== 'string' || !obj.docSummary.trim()) {
+    return '"docSummary" must be a non-empty string';
+  }
+  if (obj.keyFacts !== undefined && !Array.isArray(obj.keyFacts)) {
+    return '"keyFacts" must be a JSON array';
+  }
+  return true;
+}
+
 /** Structural check fed to completeJson so a malformed shape gets re-prompted, not dropped. */
 function validateChunkExtraction(value: unknown): true | string {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -94,6 +130,58 @@ class ProviderTracker {
 
   get models(): string {
     return [...this.used.values()].join('+');
+  }
+}
+
+/**
+ * Extracts facts from a supporting document (NOC, PAN, 7/12 extract, prior deed).
+ *
+ * These are NOT simplified clause-by-clause — nobody needs a plain-language
+ * walkthrough of their PAN card. They exist so the Risk Engine can check the
+ * primary agreement against them, so the ask is narrow: what does this document
+ * establish, and which concrete values does it state.
+ */
+async function extractSupportingChunk(
+  chunk: Chunk,
+  tracker: ProviderTracker
+): Promise<{ chunk: Chunk; supporting?: SupportingExtraction; error?: string }> {
+  const label = chunk.docType || 'Supporting Document';
+  const prompt = `You are LegalLingo, analysing a SUPPORTING VERIFICATION DOCUMENT submitted alongside a legal agreement.
+
+This document was labelled by the citizen as: "${label}" (file: "${chunk.sourceFile || 'unknown'}").
+It contains "[[PAGE N]]" markers showing which page each section came from.
+
+Return ONLY a valid JSON object matching exactly this structure:
+
+${SUPPORTING_SCHEMA}
+
+Rules:
+- Extract only values that literally appear in the text. Do not infer or invent.
+- Prioritise facts useful for cross-checking another document: person names, survey/Gat/plot numbers, amounts, dates, issuing authority, and any statement that a loan or charge is released or outstanding.
+- Do NOT simplify or explain the document. Do NOT assess risk. Facts only.
+- If the text is unreadable, return an empty "keyFacts" array and say so in "docSummary".
+
+Document Text:
+"""
+${chunk.text}
+"""`;
+
+  try {
+    const supporting = await completeJson<SupportingExtraction>(
+      { prompt, temperature: 0.1, json: true },
+      {
+        label: `api/analyze#support${chunk.index}`,
+        maxRetries: CHUNK_RETRIES,
+        maxJsonAttempts: JSON_ATTEMPTS,
+        validate: validateSupportingExtraction,
+        onProviderUsed: tracker.note
+      }
+    );
+    return { chunk, supporting };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    console.error(`[api/analyze] Supporting chunk ${chunk.index} (${label}) failed:`, message);
+    return { chunk, error: message };
   }
 }
 
@@ -258,16 +346,18 @@ function readRequestDocuments(body: Record<string, unknown>, fileName: string): 
       .filter((d) => d && Array.isArray(d.pages))
       .map((d, i) => ({
         fileName: typeof d.fileName === 'string' && d.fileName.trim() ? d.fileName : `Document ${i + 1}`,
-        pages: d.pages
+        pages: d.pages,
+        role: d.role === 'supporting' ? ('supporting' as const) : ('primary' as const),
+        docType: d.docType
       }));
   }
 
   if (Array.isArray(body.pages) && body.pages.length > 0) {
-    return [{ fileName, pages: body.pages as PageInput[] }];
+    return [{ fileName, pages: body.pages as PageInput[], role: 'primary' }];
   }
 
   if (typeof body.text === 'string' && body.text.trim()) {
-    return [{ fileName, pages: [{ pageNumber: 1, text: body.text }] }];
+    return [{ fileName, pages: [{ pageNumber: 1, text: body.text }], role: 'primary' }];
   }
 
   return [];
@@ -303,11 +393,46 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Chunk-level extraction (batched, concurrency-limited, retried) ---
-    const chunkResults = await mapWithConcurrency(chunks, CHUNK_CONCURRENCY, (chunk) => extractChunk(chunk, fileName, tracker));
+    // Primary chunks get the full simplification prompt; supporting documents
+    // get a narrow facts-only prompt, because a PAN card does not need a
+    // plain-language walkthrough — it needs its values read out for checking.
+    const primaryChunks = chunks.filter((c) => c.role !== 'supporting');
+    const supportingChunks = chunks.filter((c) => c.role === 'supporting');
+
+    const [chunkResults, supportingResults] = await Promise.all([
+      mapWithConcurrency(primaryChunks, CHUNK_CONCURRENCY, (chunk) => extractChunk(chunk, fileName, tracker)),
+      mapWithConcurrency(supportingChunks, CHUNK_CONCURRENCY, (chunk) => extractSupportingChunk(chunk, tracker))
+    ]);
     llmCalls += chunks.length;
 
     const succeeded = chunkResults.filter((r) => r.data);
-    const failed = chunkResults.filter((r) => !r.data);
+    const failed = [
+      ...chunkResults.filter((r) => !r.data),
+      ...supportingResults.filter((r) => !r.supporting)
+    ];
+
+    // One entry per supporting FILE, merging that file's chunks.
+    const supportingDocuments = combined.files
+      .filter((f) => f.role === 'supporting')
+      .map((f) => {
+        const forFile = supportingResults.filter((r) => r.chunk.sourceFile === f.fileName && r.supporting);
+        return {
+          fileName: f.fileName,
+          docType: f.docType,
+          startPage: f.startPage,
+          endPage: f.endPage,
+          summary: forFile.map((r) => r.supporting!.docSummary).filter(Boolean).join(' '),
+          keyFacts: dedupeItems(
+            forFile.flatMap((r) => (r.supporting!.keyFacts || []).map((k) => ({
+              label: String(k.label ?? ''),
+              value: String(k.value ?? ''),
+              page: toPageSafe(k.page, f.startPage)
+            }))),
+            (k) => `${k.label}:${k.value}`
+          ),
+          extractionFailed: forFile.length === 0
+        };
+      });
 
     // --- Deterministic merge, in document order ---
     // Models don't always echo the [[PAGE N]] marker back as a JSON number
@@ -451,6 +576,50 @@ export async function POST(req: NextRequest) {
     const provider = tracker.names || configured.name;
     const model = tracker.models || configured.model;
 
+    // --- Deterministic Risk Engine ---------------------------------------
+    // Runs on the assembled analysis, AFTER all LLM work. The model extracts
+    // and explains; our own rules decide what deserves attention, so a finding
+    // is always traceable to a ruleId plus the evidence that triggered it.
+    // Supporting-document text is appended to the fact pool the engine reads,
+    // but is deliberately NOT returned in `paragraphs` — the reader shows only
+    // the agreement. This is what lets a NOC set `nocDetected` and correctly
+    // suppress PROP_MORT_002, which the primary agreement alone never can.
+    const supportingPagesForRisk = pages
+      .filter((pg) => pg.role === 'supporting')
+      .map((pg, i) => ({
+        id: finalParagraphs.length + i + 1,
+        original: pg.text,
+        simple: '',
+        page: pg.pageNumber,
+        sourceFile: pg.sourceFile
+      }));
+
+    const assembled = {
+      documentType,
+      originalText: pages.map((p) => p.text).join('\n\n'),
+      paragraphs: [...finalParagraphs, ...supportingPagesForRisk],
+      importantClauses: finalClauses,
+      missingInformation: finalMissingInfo,
+      fiveQuestions: synthesis.fiveQuestions,
+      keyInformation: [],
+      parties: [],
+      analysisMeta: { fullyAnalyzed: failed.length === 0 }
+    } as unknown as Parameters<typeof runRiskEngine>[0];
+
+    let riskEngine;
+    try {
+      const result = runRiskEngine(assembled);
+      riskEngine = {
+        findings: result.findings,
+        summary: result.summary,
+        version: result.version
+      };
+    } catch (e) {
+      // The engine is additive — a bug in a rule must never cost the user their
+      // whole analysis, so it degrades to "no deterministic findings" instead.
+      console.error('[api/analyze] Risk engine failed, returning analysis without it:', e);
+    }
+
     return NextResponse.json({
       documentType,
       classificationConfidence: synthesis.classificationConfidence,
@@ -467,18 +636,24 @@ export async function POST(req: NextRequest) {
       legalTerms,
       recommendedActions,
       relevantServices: getRelevantServicesForDocType(documentType),
+      supportingDocuments,
+      riskEngine,
       analysisMeta: {
         fullyAnalyzed: failed.length === 0,
         totalPages,
         totalFiles: combined.files.length,
+        supportingFiles: combined.files.filter((f) => f.role === 'supporting').length,
         files: combined.files.map((f) => ({
           fileName: f.fileName,
+          role: f.role,
+          docType: f.docType,
           startPage: f.startPage,
           endPage: f.endPage,
           pageCount: f.pageCount
         })),
         totalChunks: chunks.length,
-        chunksSucceeded: succeeded.length,
+        // Counts BOTH extractors, so it reconciles against totalChunks.
+        chunksSucceeded: succeeded.length + supportingResults.filter((r) => r.supporting).length,
         chunksFailed: failed.length,
         warnings,
         llmCalls,

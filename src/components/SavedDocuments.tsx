@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { FolderHeart, FileText, Trash2, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
+import {
+  FolderHeart, FileText, Trash2, ArrowRight, ShieldCheck, Clock,
+  Loader2, CloudOff, Smartphone
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
 
@@ -13,11 +17,16 @@ const STATUS_KEY: Record<string, string> = {
 };
 
 export const SavedDocuments: React.FC = () => {
-  const { savedDocuments, deleteSavedDocument, loadSampleDocument, language } = useApp();
+  const { savedDocuments, deleteSavedDocument, openSavedDocument, loadSampleDocument, language,
+    isSyncing, syncError } = useApp();
+  const { isGuest, authAvailable, openAuthModal } = useAuth();
   const router = useRouter();
 
   const handleOpenDoc = (docId: string) => {
-    // Navigate home to view active document analysis
+    // Select the document first, then show the reader. Without the select the
+    // reader renders whichever analysis was already active, so every card
+    // appeared to open the same document.
+    openSavedDocument(docId);
     router.push('/');
   };
 
@@ -46,8 +55,46 @@ export const SavedDocuments: React.FC = () => {
         </button>
       </div>
 
+      {/* Where these documents actually live. A citizen should never have to
+          guess whether a deed is only on this handset. */}
+      {isSyncing ? (
+        <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          {getTranslation('syncingLabel', language)}
+        </div>
+      ) : syncError ? (
+        <div className="flex items-start gap-2 text-xs bg-amber-50 border border-amber-300 rounded-xl px-4 py-3">
+          <CloudOff className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-900">{getTranslation('syncFailedTitle', language)}</p>
+            <p className="font-medium text-amber-800 mt-0.5">{getTranslation('syncFailedNote', language)}</p>
+          </div>
+        </div>
+      ) : authAvailable && isGuest && savedDocuments.length > 0 ? (
+        <div className="flex items-start gap-2 text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+          <Smartphone className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+          <p className="font-medium text-slate-700">{getTranslation('guestStorageNote', language)}</p>
+        </div>
+      ) : null}
+
       {/* Document Cards */}
-      {savedDocuments.length === 0 ? (
+      {savedDocuments.length === 0 && authAvailable && isGuest ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-emerald-100 shadow-sm max-w-lg mx-auto">
+          <CloudOff className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+          <h3 className="text-xl font-black text-gray-900 mb-2">
+            {getTranslation('guestNoDocsTitle', language)}
+          </h3>
+          <p className="text-sm text-gray-500 font-medium mb-6">
+            {getTranslation('guestNoDocsText', language)}
+          </p>
+          <button
+            onClick={openAuthModal}
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md"
+          >
+            {getTranslation('signInToSave', language)}
+          </button>
+        </div>
+      ) : savedDocuments.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-emerald-100 shadow-sm max-w-lg mx-auto">
           <FileText className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
           <h3 className="text-xl font-black text-gray-900 mb-2">{getTranslation('noSavedDocsTitle', language)}</h3>

@@ -219,6 +219,111 @@ differ from what was configured when the fallback engaged.
 `/api/analyze` accepts three request shapes, all still supported:
 `{documents: [{fileName, pages}]}` (current), `{pages, fileName}`, `{text, fileName}`.
 
+## Deterministic Risk Engine (`src/lib/risk/`)
+
+**The LLM extracts and explains. Our own code decides what deserves attention.**
+Severity no longer comes from the model — `importantClauses[].riskLevel` is still
+returned for the legacy clause view, but the authoritative findings come from
+`riskEngine.findings[]`, and every one is traceable to a `ruleId` plus the
+evidence that triggered it.
+
+```
+chunk extraction -> merge -> synthesis
+   -> normalizeFacts(analysis)      // evidence-carrying fact sheet
+   -> runRiskEngine(facts)          // deterministic rule packs
+   -> riskEngine { findings, summary, version }
+```
+
+The engine is wrapped in try/catch inside `/api/analyze`: a bug in a rule must
+never cost the user their whole analysis, so it degrades to "no deterministic
+findings" and the rest of the response still returns.
+
+### Vocabulary is a product constraint, not a style choice
+
+Severities are `STANDARD` / `REVIEW` / `HIGH_ATTENTION`. Findings never say a
+document is *illegal, invalid, fraudulent, unsafe* or *legally defective* —
+there is a test (`never uses prohibited legal-validity wording`) that fails the
+build if those words appear in any finding's prose. This is an **attention and
+verification engine**, not a legal-validity engine.
+
+### The single most important rule in this module
+
+`normalizeFacts` reads facts from **document text only**:
+
+| Trusted as evidence | NOT evidence |
+|---|---|
+| `originalText`, `paragraphs[].original`, `importantClauses[].originalText` | `simpleMeaning`, `whyItMatters`, `recommendedAction`, `missingInformation[]` |
+
+The right column is the model's *advice*. A clause whose `recommendedAction`
+reads "obtain a bank NOC before paying" would, if treated as document text, make
+the engine conclude an NOC exists — inverting the very finding that advice was
+warning about. There is a regression test for exactly this. **Do not widen the
+fact sources to include commentary fields.**
+
+### Rules implemented (v1)
+
+| Rule ID | Fires when | Severity |
+|---|---|---|
+| `PROP_MORT_001` | mortgage/encumbrance mentioned | REVIEW |
+| `PROP_MORT_002` | mortgage present, **no** release/discharge wording | HIGH_ATTENTION |
+| `MISS_PROPERTY_ID_001` | no survey/Gat/flat identifier found | HIGH_ATTENTION on sale, REVIEW otherwise |
+| `PROP_ID_CONFLICT_001` | bare parcel used alongside its own sub-division | HIGH_ATTENTION |
+| `PAY_FORFEIT_001` | forfeiture consequence found | HIGH_ATTENTION |
+| `PAY_DEADLINE_001` | time-bound payment obligation | REVIEW |
+| `FIN_RECON_001` | advance + mortgage + balance ≠ consideration | HIGH_ATTENTION |
+| `MISS_SELLER_001` / `MISS_BUYER_001` | party not located (sale-type only) | HIGH_ATTENTION |
+| `ID_SELLER_CONFLICT_001` / `ID_BUYER_CONFLICT_001` | party named inconsistently | HIGH_ATTENTION (certain) / REVIEW (abbreviation) |
+| `MISS_WITNESS_001` | no witness names located | REVIEW |
+| `MISS_FIELD_001` | grouped "expected analysis fields" checklist | scales with count |
+| `XC_DEADLINE_CONFLICT_001` / `XC_POSSESSION_CONFLICT_001` | exactly two conflicting dates | REVIEW |
+
+### False positives are the failure mode that matters
+
+Real conveyancing prose broke four naive implementations. Each fix is guarded by
+a regression test — **read these before "simplifying" the parsers**:
+
+1. **Amounts.** `parseIndianAmount` checks currency-marked numbers *first*.
+   Searching for the first number-like token made "Gat No. 142/3A … loan of
+   Rs. 2,80,000" parse as **142**. Bare 3-digit numbers are never matched.
+2. **Labels.** `amountFromText` searches forward from the label, it does not
+   split into sentences. Indian drafting writes "Rs. 18,50,000", and the full
+   stop in "Rs." split the label from its own number, so nothing parsed at all —
+   which silently made `FIN_RECON_001` unable to fire.
+3. **Names.** `namesFromDefinition` only accepts a name from an explicit
+   definitional parenthetical ("… (hereinafter the Vendor)"). Harvesting
+   capitalised word pairs from any sentence mentioning a role also collected
+   "Village Khed", "Taluka Haveli" and "Haveli Primary Agricultural Cooperative
+   Credit Society", firing a bogus party conflict on essentially every document.
+4. **Dates.** `extractDatesNearPhrase` requires the date to sit close after the
+   deadline phrase. Attributing every date in a clause to the deadline turned the
+   execution date into a second "payment deadline" and fired a bogus conflict.
+
+Cross-clause checks back off deliberately: three or more distinct dates reads as
+a real instalment schedule, and multiple sub-divided parcels (142/3A + 142/3B) is
+a normal multi-parcel sale. Silence beats a false positive here.
+
+### Confidence
+
+`HIGH` / `MEDIUM` / `LOW`, engine-assigned — never model-invented percentages.
+`resolveConfidence` downgrades one step when `analysisMeta.fullyAnalyzed` is
+false, **except** for rules whose evidence is unambiguous positive text (a
+forfeiture clause we actually read stays HIGH). Rules that fire on *absence*
+never get that override, because absence is only as trustworthy as coverage.
+
+### UI
+
+`RiskEngineFindings.tsx` renders above `ClauseRiskAnalysis`, and returns `null`
+when `riskEngine` is absent — so the sample document and any previously saved
+analysis fall back to the old clause view with no layout gap. Each card has a
+"Why was this flagged?" drawer showing rule id, confidence, detected fields and
+page-numbered evidence. `riskEngine` is optional on `DocumentAnalysis` for this
+reason; keep it optional.
+
+### Not done yet
+
+`RiskFinding.legalBasis` exists but is deliberately never populated — that is
+the RAG phase. **Do not hardcode statutory citations into rules.**
+
 ## Multi-language support (en/hi/mr/gu)
 
 Two separate systems, both necessary:
@@ -363,7 +468,8 @@ survive the switch.
 
 ## Testing pattern used throughout this project's development
 
-No committed test suite exists yet. Verification so far has been: run
+A Vitest suite now covers the Risk Engine (`npm test`, 36 tests in
+`src/lib/risk/riskEngine.test.ts`). Everything else is still verified by hand: run
 `npx tsc --noEmit` and `npx eslint <changed files>`, then drive the actual
 running dev server (`npm run dev`) with Playwright — upload a real generated
 test PDF, intercept the `/api/analyze` (or `/translate`, `/chat`) network

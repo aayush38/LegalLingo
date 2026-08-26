@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, FileText, Landmark, FolderHeart, Mic, AlertCircle } from 'lucide-react';
+import { ShieldCheck, FileText, Landmark, FolderHeart, MessageSquare, AlertCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
 
@@ -123,7 +123,7 @@ export const Footer: React.FC = () => {
           onClick={() => setIsChatOpen(true)}
           className="flex flex-col items-center text-[10px] font-bold text-white bg-emerald-600 p-2 rounded-full shadow-lg -mt-4 border-2 border-emerald-400"
         >
-          <Mic className="w-5 h-5 text-white" />
+          <MessageSquare className="w-5 h-5 text-white" />
         </button>
 
         <Link href="/my-documents" className="flex flex-col items-center text-[10px] font-bold text-emerald-200">

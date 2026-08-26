@@ -4,9 +4,21 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { DocumentAnalysis, LanguageCode } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
 import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
-import { processDocumentFiles, MAX_FILES_PER_UPLOAD } from '@/lib/ocr';
+import { processDocumentFiles, MAX_FILES_PER_UPLOAD, type UploadItem } from '@/lib/ocr';
+import { useAuth } from '@/context/AuthContext';
+import {
+  saveAnalysis,
+  deleteDocumentSet,
+  setChecklistItemCompleted
+} from '@/lib/persistence/saveAnalysis';
+import { loadSavedDocuments } from '@/lib/persistence/loadDocuments';
 
 const LANGUAGE_STORAGE_KEY = 'legallingo_language';
+/**
+ * Key used by earlier builds to keep documents on the device. Nothing writes
+ * to it any more; it is only read in order to be deleted.
+ */
+const LEGACY_DOCS_STORAGE_KEY = 'legallingo_saved_docs';
 const SUPPORTED_LANGUAGES: LanguageCode[] = ['en', 'hi', 'mr', 'gu'];
 
 interface AppContextType {
@@ -20,6 +32,10 @@ interface AppContextType {
   uploadProgressPercent: number;
   ocrConfidence: number;
   savedDocuments: DocumentAnalysis[];
+  /** True while the signed-in document list is being fetched or written. */
+  isSyncing: boolean;
+  /** Set when the last save failed, so the UI can say so instead of pretending. */
+  syncError: string | null;
   isChatOpen: boolean;
   selectedParagraphId: number | null;
   setCurrentAnalysis: (analysis: any) => void;
@@ -30,9 +46,11 @@ interface AppContextType {
   loadSampleDocument: () => void;
   processUploadedFile: (file: File) => Promise<void>;
   processUploadedFiles: (files: File[]) => Promise<void>;
+  processUploadedItems: (items: UploadItem[]) => Promise<void>;
   updateExtractedText: (newText: string) => Promise<void>;
   toggleChecklistItem: (itemId: string) => void;
   deleteSavedDocument: (docId: string) => void;
+  openSavedDocument: (docId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -54,24 +72,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [savedDocuments, setSavedDocuments] = useState<DocumentAnalysis[]>([]);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Who, if anyone, is signed in. Documents are saved only for signed-in users.
+  const { user } = useAuth();
 
   const translationCacheRef = useRef(translationCacheByLang);
   useEffect(() => {
     translationCacheRef.current = translationCacheByLang;
   }, [translationCacheByLang]);
 
-  // Load initial sample document or local storage history
+  /**
+   * Removes any documents an earlier build left on this device.
+   *
+   * Documents are now account-only: nothing is written to localStorage, and a
+   * device that already holds documents from the previous behaviour is cleared
+   * on first load. Someone who analysed a sale deed on a borrowed handset
+   * should not find it still there afterwards.
+   */
   useEffect(() => {
     try {
-      const storedDocs = localStorage.getItem('legallingo_saved_docs');
-      if (storedDocs) {
-        const parsed = JSON.parse(storedDocs);
-        setSavedDocuments(parsed);
-      } else {
-        setSavedDocuments([SAMPLE_AGRICULTURAL_SALE_AGREEMENT]);
-      }
+      localStorage.removeItem(LEGACY_DOCS_STORAGE_KEY);
     } catch (e) {
-      setSavedDocuments([SAMPLE_AGRICULTURAL_SALE_AGREEMENT]);
+      console.warn('Could not clear legacy document storage:', e);
     }
   }, []);
 
@@ -127,14 +151,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [language, currentAnalysis]);
 
+  /**
+   * Swaps the document list over when the signed-in user changes.
+   *
+   * Signing in shows what is in the account; signing out falls back to whatever
+   * is on this device. Local documents are never deleted by this — a guest who
+   * signs in and out again still finds their work.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    const sync = async () => {
+      if (!user) {
+        // Signed out. There is no on-device library to fall back to, and
+        // whatever was on screen belonged to the account that just left, so the
+        // list is emptied rather than repopulated.
+        if (!cancelled) setSavedDocuments([]);
+        return;
+      }
+
+      if (!cancelled) setIsSyncing(true);
+      try {
+        const docs = await loadSavedDocuments();
+        if (!cancelled) setSavedDocuments(docs);
+      } finally {
+        if (!cancelled) setIsSyncing(false);
+      }
+    };
+
+    void sync();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   // Save to local storage whenever savedDocuments change
-  const persistSavedDocs = (docs: DocumentAnalysis[]) => {
+  /**
+   * Updates the in-memory document list.
+   *
+   * Nothing is written to the device. For a signed-in user the durable copy is
+   * in Supabase; for a guest there is deliberately no durable copy at all, so
+   * this list lasts only as long as the tab.
+   */
+  const setDocuments = (docs: DocumentAnalysis[]) => {
     setSavedDocuments(docs);
-    try {
-      localStorage.setItem('legallingo_saved_docs', JSON.stringify(docs));
-    } catch (e) {
-      console.warn('LocalStorage save failed:', e);
-    }
   };
 
   const togglePrivacyShield = () => {
@@ -159,23 +220,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Save sample if not exists
       if (!savedDocuments.some((d) => d.id === SAMPLE_AGRICULTURAL_SALE_AGREEMENT.id)) {
-        persistSavedDocs([SAMPLE_AGRICULTURAL_SALE_AGREEMENT, ...savedDocuments]);
+        setDocuments([SAMPLE_AGRICULTURAL_SALE_AGREEMENT, ...savedDocuments]);
       }
     }, 800);
   };
 
   /**
-   * Runs OCR/extraction on one or more uploaded files and analyzes them as a
-   * single submission. Multiple files are combined server-side rather than
-   * analyzed separately, so the summary and checklist cover the whole set.
+   * Runs OCR/extraction on a submission and analyzes it as one unit.
+   *
+   * A submission is one primary document (the agreement being explained) plus
+   * any supporting documents (NOC, PAN, 7/12 extract...). They are combined
+   * server-side rather than analyzed separately, so the summary, checklist and
+   * cross-document risk checks all see the whole set.
    */
-  const processUploadedFiles = async (files: File[]) => {
-    const selected = files.slice(0, MAX_FILES_PER_UPLOAD);
+  const processUploadedItems = async (items: UploadItem[]) => {
+    const selected = items.slice(0, MAX_FILES_PER_UPLOAD);
     if (selected.length === 0) return;
+
+    const primary = selected.find((i) => i.role === 'primary') ?? selected[0];
+    const supportingCount = selected.filter((i) => i.role === 'supporting').length;
 
     setIsAnalyzing(true);
     setUploadProgressStage(
-      selected.length > 1 ? `Uploading ${selected.length} documents...` : 'Uploading document...'
+      supportingCount > 0
+        ? `Uploading document + ${supportingCount} supporting ${supportingCount === 1 ? 'file' : 'files'}...`
+        : 'Uploading document...'
     );
     setUploadProgressPercent(5);
 
@@ -190,29 +259,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUploadProgressPercent(92);
 
       const title =
-        selected.length > 1
-          ? `${selected[0].name} + ${selected.length - 1} more`
-          : selected[0].name;
+        supportingCount > 0
+          ? `${primary.file.name} + ${supportingCount} supporting`
+          : primary.file.name;
 
       const analysis = await analyzeDocumentText(
         extraction.text,
         title,
         extraction.pages,
-        extraction.files.map((f) => ({ fileName: f.fileName, pages: f.pages }))
+        extraction.files.map((f) => ({
+          fileName: f.fileName,
+          pages: f.pages,
+          role: f.role,
+          docType: f.docType
+        }))
       );
       analysis.ocrConfidence = extraction.confidence;
       analysis.isScanned = extraction.isScanned;
       analysis.sourceFiles = extraction.files.map((f) => f.fileName);
+      // The route returns supportingDocuments enriched with a summary and the
+      // key facts it read out. Only synthesise a bare list locally when the
+      // server sent none — overwriting it here would throw that work away.
+      if (!analysis.supportingDocuments || analysis.supportingDocuments.length === 0) {
+        const localSupporting = extraction.files
+          .filter((f) => f.role === 'supporting')
+          .map((f) => ({ fileName: f.fileName, docType: f.docType }));
+        if (localSupporting.length > 0) analysis.supportingDocuments = localSupporting;
+      }
 
       setUploadProgressPercent(100);
       setCurrentAnalysis(analysis);
-      persistSavedDocs([analysis, ...savedDocuments]);
+
+      if (user) {
+        // Signed in: the account is the source of truth. The save runs before
+        // the list is updated so the card carries its real document_set id and
+        // can be opened or deleted straight away.
+        setIsSyncing(true);
+        setSyncError(null);
+        const saved = await saveAnalysis(
+          analysis,
+          extraction,
+          selected.map((i) => ({ file: i.file, role: i.role, docType: i.docType }))
+        );
+        setIsSyncing(false);
+
+        if (saved.ok && saved.documentSetId) {
+          analysis.id = saved.documentSetId;
+          if (saved.failedUploads && saved.failedUploads.length > 0) {
+            // The analysis is safe; only the original scans are missing.
+            console.warn('[sync] originals not uploaded:', saved.failedUploads.join(', '));
+          }
+        } else {
+          // Never silently drop the document. It stays in the session list and
+          // the UI can report that this one is not backed up.
+          setSyncError(saved.error ?? 'save_failed');
+        }
+        setDocuments([analysis, ...savedDocuments]);
+      } else {
+        setDocuments([analysis, ...savedDocuments]);
+      }
     } catch (error) {
       console.error('File processing error:', error);
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  /** Back-compat: a bare File[] is treated as one primary plus extra primaries. */
+  const processUploadedFiles = (files: File[]) =>
+    processUploadedItems(files.map((file) => ({ file, role: 'primary' as const })));
 
   const processUploadedFile = (file: File) => processUploadedFiles([file]);
 
@@ -233,22 +348,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleChecklistItem = (itemId: string) => {
     if (!currentAnalysis) return;
+    const target = currentAnalysis.recommendedActions.find((i) => i.id === itemId);
+    if (!target) return;
+    const nextCompleted = !target.completed;
+
     const updatedActions = currentAnalysis.recommendedActions.map((item) =>
-      item.id === itemId ? { ...item, completed: !item.completed } : item
+      item.id === itemId ? { ...item, completed: nextCompleted } : item
     );
     const updatedDoc = { ...currentAnalysis, recommendedActions: updatedActions };
     setCurrentAnalysis(updatedDoc);
-    persistSavedDocs(
-      savedDocuments.map((doc) => (doc.id === updatedDoc.id ? updatedDoc : doc))
-    );
+    setDocuments(savedDocuments.map((doc) => (doc.id === updatedDoc.id ? updatedDoc : doc)));
+
+    // Ticking a box should feel instant, so the write is fired without
+    // awaiting it. The optimistic state above already reflects the change, and
+    // a failed tick is recoverable by ticking again.
+    if (user) {
+      void setChecklistItemCompleted(updatedDoc.id, itemId, nextCompleted);
+    }
   };
 
   const deleteSavedDocument = (docId: string) => {
     const filtered = savedDocuments.filter((d) => d.id !== docId);
-    persistSavedDocs(filtered);
+    setDocuments(filtered);
     if (currentAnalysis?.id === docId) {
       setCurrentAnalysis(filtered[0] || null);
     }
+    if (user) {
+      // Removes the stored originals as well as the rows — see deleteDocumentSet.
+      void deleteDocumentSet(docId);
+    }
+  };
+
+  /**
+   * Makes a saved document the one on screen.
+   *
+   * Previously the saved-document cards navigated to the reader without
+   * selecting anything, so every card opened whichever analysis happened to be
+   * active. With documents actually persisting, that would show one deed while
+   * claiming to show another.
+   */
+  const openSavedDocument = (docId: string) => {
+    const doc = savedDocuments.find((d) => d.id === docId);
+    if (doc) setCurrentAnalysis(doc);
   };
 
   return (
@@ -264,6 +405,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         uploadProgressPercent,
         ocrConfidence,
         savedDocuments,
+        isSyncing,
+        syncError,
         isChatOpen,
         selectedParagraphId,
         setCurrentAnalysis,
@@ -274,9 +417,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loadSampleDocument,
         processUploadedFile,
         processUploadedFiles,
+        processUploadedItems,
         updateExtractedText,
         toggleChecklistItem,
         deleteSavedDocument,
+        openSavedDocument,
       }}
     >
       {children}

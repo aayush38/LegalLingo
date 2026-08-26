@@ -19,9 +19,41 @@ export interface ExtractionResult {
   isScanned: boolean;
 }
 
+/**
+ * What a file is FOR in a submission.
+ *
+ * A primary document is the agreement the citizen wants explained. Supporting
+ * documents (NOC, PAN, 7/12 extract, prior deed) exist to corroborate it — they
+ * are not simplified clause-by-clause, they are mined for facts that the Risk
+ * Engine can check the primary document against.
+ */
+export type DocumentRole = 'primary' | 'supporting';
+
+/** The tags offered in the uploader; mirrors the doc types the rules care about. */
+export const SUPPORTING_DOC_TYPES = [
+  'NOC / Release Letter',
+  'PAN Card',
+  '7/12 Extract',
+  'Previous Title Deed',
+  'Encumbrance Certificate',
+  'Other Supporting Document'
+] as const;
+
+export type SupportingDocType = (typeof SUPPORTING_DOC_TYPES)[number];
+
+/** One file queued for analysis, with the role the user assigned it. */
+export interface UploadItem {
+  file: File;
+  role: DocumentRole;
+  /** Free-form label, e.g. 'NOC / Release Letter'. Absent for the primary doc. */
+  docType?: string;
+}
+
 /** One file's extraction result within a multi-file upload. */
 export interface FileExtractionResult extends ExtractionResult {
   fileName: string;
+  role: DocumentRole;
+  docType?: string;
 }
 
 export interface MultiFileExtractionResult {
@@ -39,8 +71,14 @@ export interface MultiFileExtractionResult {
   isScanned: boolean;
 }
 
-/** Hard cap on files per upload — each file costs at least one LLM call downstream. */
-export const MAX_FILES_PER_UPLOAD = 10;
+/**
+ * Caps per submission. Photographed documents arrive one page per image, so a
+ * 12-page agreement shot page-by-page would blow a flat cap of 10 and be
+ * silently truncated — images therefore get a much higher ceiling than the
+ * per-file LLM cost of PDFs warrants.
+ */
+export const MAX_FILES_PER_UPLOAD = 24;
+export const MAX_SUPPORTING_DOCS = 8;
 
 const MAX_PDF_PAGES = 30;
 const MAX_OCR_PAGES = 8;
@@ -180,14 +218,17 @@ export async function processDocumentFile(
  * still analyzed.
  */
 export async function processDocumentFiles(
-  files: File[],
+  items: UploadItem[],
   onProgress?: OcrProgressCallback
 ): Promise<MultiFileExtractionResult> {
-  const selected = files.slice(0, MAX_FILES_PER_UPLOAD);
+  // Primary documents first, so page 1 of the combined document is always page
+  // 1 of the agreement rather than of whatever supporting file was picked first.
+  const ordered = [...items].sort((a, b) => (a.role === b.role ? 0 : a.role === 'primary' ? -1 : 1));
+  const selected = ordered.slice(0, MAX_FILES_PER_UPLOAD);
   const results: FileExtractionResult[] = [];
 
   for (let i = 0; i < selected.length; i++) {
-    const file = selected[i];
+    const { file, role, docType } = selected[i];
     // Map each file's 0-100 progress into its own band of the overall bar.
     const bandStart = (i / selected.length) * 100;
     const bandSize = 100 / selected.length;
@@ -199,11 +240,11 @@ export async function processDocumentFiles(
       onProgress(`${prefix}${stage}`, Math.min(overall, 100));
     });
 
-    results.push({ ...result, fileName: file.name });
+    results.push({ ...result, fileName: file.name, role, docType });
   }
 
   const combined = combineDocuments(
-    results.map((r) => ({ fileName: r.fileName, pages: r.pages }))
+    results.map((r) => ({ fileName: r.fileName, pages: r.pages, role: r.role, docType: r.docType }))
   );
 
   const text = results

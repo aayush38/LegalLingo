@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { AskLegalLingoChat } from '@/components/AskLegalLingoChat';
+import { ChatLauncher } from '@/components/ChatLauncher';
+import { AuthModal } from '@/components/AuthModal';
 import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
@@ -14,12 +17,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-[#F4FBF7] text-slate-900 selection:bg-emerald-200">
-        <AppProvider>
-          <Navbar />
-          <div className="flex-1">{children}</div>
-          <AskLegalLingoChat />
-          <Footer />
-        </AppProvider>
+        {/* AuthProvider wraps AppProvider so AppContext can see who is signed in
+            and persist their documents. The auth UI still reads `language`
+            because context flows down to it from AppProvider either way. */}
+        <AuthProvider>
+          <AppProvider>
+            <Navbar />
+            <div className="flex-1">{children}</div>
+            <AskLegalLingoChat />
+            <ChatLauncher />
+            <Footer />
+            <AuthModal />
+          </AppProvider>
+        </AuthProvider>
       </body>
     </html>
   );

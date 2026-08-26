@@ -5,6 +5,9 @@ import { PageText } from './ocr';
 export interface AnalysisSourceDocument {
   fileName: string;
   pages: PageText[];
+  /** 'primary' is the agreement being explained; 'supporting' corroborates it. */
+  role?: 'primary' | 'supporting';
+  docType?: string;
 }
 
 /**
@@ -24,7 +27,7 @@ export async function analyzeDocumentText(
   const payloadDocuments: AnalysisSourceDocument[] =
     documents && documents.length > 0
       ? documents
-      : [{ fileName, pages: pages && pages.length > 0 ? pages : [{ pageNumber: 1, text: extractedText }] }];
+      : [{ fileName, role: 'primary', pages: pages && pages.length > 0 ? pages : [{ pageNumber: 1, text: extractedText }] }];
 
   try {
     const response = await fetch('/api/analyze', {
