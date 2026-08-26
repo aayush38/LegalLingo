@@ -13,7 +13,7 @@ import { GovtServicesSection } from '@/components/GovtServicesSection';
 import { useApp } from '@/context/AppContext';
 
 export default function HomePage() {
-  const { currentAnalysis } = useApp();
+  const { currentAnalysis, showDocumentHealth } = useApp();
 
   return (
     <main className="min-h-screen bg-[#F4FBF7] pb-16">
@@ -35,7 +35,7 @@ export default function HomePage() {
           <ClauseRiskAnalysis />
 
           {/* Document Health / AI Completeness Score Breakdown */}
-          <DocumentHealthScore />
+          {showDocumentHealth && <DocumentHealthScore />}
 
           {/* Difficult Legal Words Glossary */}
           <DifficultWordsGlossary />

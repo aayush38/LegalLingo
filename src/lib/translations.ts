@@ -244,6 +244,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     backToMyDocs: 'Back to My Documents',
     analysisNotFoundTitle: 'Analysis Not Found',
     analysisNotFoundDesc: 'We could not find this saved document analysis. It may have been removed or the link is invalid.',
+
+    // Dashboard Interactions Keys (Phase 4)
+    riskAndClauseAnalysis: 'Risk & Clause Analysis',
+    govtServicesLabel: 'Government Services',
+    viewHealthBreakdown: 'Click to view breakdown ↓',
+    exploreServicesLabel: 'Explore Portals ↓',
+    viewRiskAnalysisLabel: 'View Analysis ↓',
+    portalsCountLabel: 'Portals Matched',
   },
 
   hi: {
@@ -489,6 +497,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     backToMyDocs: 'माई डॉक्यूमेंट्स पर वापस जाएं',
     analysisNotFoundTitle: 'विश्लेषण नहीं मिला',
     analysisNotFoundDesc: 'हमें यह सहेजा गया दस्तावेज़ विश्लेषण नहीं मिला। हो सकता है इसे हटा दिया गया हो या लिंक अमान्य हो।',
+
+    // Dashboard Interactions Keys (Phase 4)
+    riskAndClauseAnalysis: 'जोखिम और खंड विश्लेषण',
+    govtServicesLabel: 'सरकारी सेवाएं',
+    viewHealthBreakdown: 'विवरण देखने के लिए क्लिक करें ↓',
+    exploreServicesLabel: 'पोर्टल देखें ↓',
+    viewRiskAnalysisLabel: 'विश्लेषण देखें ↓',
+    portalsCountLabel: 'पोर्टल उपलब्ध',
   },
 
   mr: {
@@ -734,6 +750,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     backToMyDocs: 'माझे दस्तऐवज वर परत जा',
     analysisNotFoundTitle: 'विश्लेषण सापडले नाही',
     analysisNotFoundDesc: 'आम्हाला हे जतन केलेले दस्तऐवज विश्लेषण सापडले नाही. ते काढले गेले असू शकते किंवा लिंक अवैध आहे.',
+
+    // Dashboard Interactions Keys (Phase 4)
+    riskAndClauseAnalysis: 'जोखीम आणि कलम विश्लेषण',
+    govtServicesLabel: 'शासकीय सेवा',
+    viewHealthBreakdown: 'तपशील पाहण्यासाठी क्लिक करा ↓',
+    exploreServicesLabel: 'पोर्टल पहा ↓',
+    viewRiskAnalysisLabel: 'विश्लेषण पहा ↓',
+    portalsCountLabel: 'पोर्टल उपलब्ध',
   },
 
   gu: {
@@ -979,6 +1003,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     backToMyDocs: 'મારા દસ્તાવેજો પર પાછા જાઓ',
     analysisNotFoundTitle: 'વિશ્લેષણ મળ્યું નથી',
     analysisNotFoundDesc: 'અમને આ સાચવેલ દસ્તાવેજ વિશ્લેષણ મળ્યું નથી. કદાચ તે કાઢી નાખવામાં આવ્યું છે અથવા લિંક અમાન્ય છે.',
+
+    // Dashboard Interactions Keys (Phase 4)
+    riskAndClauseAnalysis: 'જોખમ અને શરતોનું વિશ્લેષણ',
+    govtServicesLabel: 'સરકારી સેવાઓ',
+    viewHealthBreakdown: 'વિગતવાર જોવા માટે ક્લિક કરો ↓',
+    exploreServicesLabel: 'પોર્ટલ જુઓ ↓',
+    viewRiskAnalysisLabel: 'વિશ્લેષણ જુઓ ↓',
+    portalsCountLabel: 'પોર્ટલ ઉપલબ્ધ',
   }
 };
 

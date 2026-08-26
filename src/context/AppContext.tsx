@@ -23,6 +23,8 @@ interface AppContextType {
   isChatOpen: boolean;
   selectedParagraphId: number | null;
   selectedFiles: UploadedFileItem[];
+  showDocumentHealth: boolean;
+  setShowDocumentHealth: (show: boolean) => void;
   addSelectedFiles: (files: File[]) => void;
   removeSelectedFile: (id: string) => void;
   updateFileRole: (id: string, role: DocumentRole) => void;
@@ -60,6 +62,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<UploadedFileItem[]>([]);
+  const [showDocumentHealth, setShowDocumentHealth] = useState<boolean>(false);
 
   // Cleanup object URLs on unmount or file removal
   useEffect(() => {
@@ -199,6 +202,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loadSampleDocument = () => {
+    setShowDocumentHealth(false);
     setIsAnalyzing(true);
     setUploadProgressStage('Loading sample document...');
     setUploadProgressPercent(30);
@@ -255,8 +259,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     const selected = sortedItems.map((item) => item.file).slice(0, MAX_FILES_PER_UPLOAD);
-    if (selected.length === 0) return;
+    if (itemsToProcess.length === 0) return;
 
+    setShowDocumentHealth(false);
     setIsAnalyzing(true);
     setUploadProgressStage(
       selected.length > 1 ? `Uploading ${selected.length} documents...` : 'Uploading document...'
@@ -351,6 +356,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isChatOpen,
         selectedParagraphId,
         selectedFiles,
+        showDocumentHealth,
+        setShowDocumentHealth,
         addSelectedFiles,
         removeSelectedFile,
         updateFileRole,

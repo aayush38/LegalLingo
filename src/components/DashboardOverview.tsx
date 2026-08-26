@@ -20,10 +20,24 @@ const STATUS_EMOJI: Record<string, string> = {
 };
 
 export const DashboardOverview: React.FC = () => {
-  const { currentAnalysis, language, translationCache, privacyShield } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield, showDocumentHealth, setShowDocumentHealth } = useApp();
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
   if (!currentAnalysis) return null;
+
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleUnderstandingScoreClick = () => {
+    setShowDocumentHealth(true);
+    setTimeout(() => {
+      scrollToSection('section-document-health');
+    }, 50);
+  };
 
   const summaryText = applyPrivacyMask(
     getTranslatedExplanation(currentAnalysis.summary, language, translationCache),
@@ -49,7 +63,7 @@ export const DashboardOverview: React.FC = () => {
       {/* Top Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         
-        {/* Card 1: Type */}
+        {/* Card 1: Type (Static) */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
             {getTranslation('docType', language)}
@@ -62,49 +76,66 @@ export const DashboardOverview: React.FC = () => {
           </span>
         </div>
 
-        {/* Card 2: Health Score */}
-        <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+        {/* Card 2: Understanding Score -> Document Health (Interactive) */}
+        <button
+          type="button"
+          onClick={handleUnderstandingScoreClick}
+          className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer text-left group active:scale-[0.98] w-full"
+          title={getTranslation('viewHealthBreakdown', language)}
+        >
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1 group-hover:text-emerald-700 transition-colors">
             {getTranslation('understandingScore', language)}
           </span>
           <p className="text-xl font-black text-emerald-600">
             {currentAnalysis.understandingScore}<span className="text-xs text-gray-400">/100</span>
           </p>
-          <span className="text-[10px] font-bold text-emerald-800">{getTranslation('completenessHighLabel', language)}</span>
-        </div>
+          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1 group-hover:bg-emerald-100 transition-colors">
+            {showDocumentHealth ? '✓ ' + getTranslation('completenessHighLabel', language) : getTranslation('viewHealthBreakdown', language)}
+          </span>
+        </button>
 
-        {/* Card 3: Important Issues */}
-        <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            {getTranslation('importantIssues', language)}
+        {/* Card 3: Risk & Clause Analysis (Interactive) */}
+        <button
+          type="button"
+          onClick={() => scrollToSection('section-clause-risk')}
+          className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:shadow-md transition-all cursor-pointer text-left group active:scale-[0.98] w-full"
+          title={getTranslation('viewRiskAnalysisLabel', language)}
+        >
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1 group-hover:text-amber-700 transition-colors truncate">
+            {getTranslation('riskAndClauseAnalysis', language)}
           </span>
           <p className="text-xl font-black text-amber-600">
             {currentAnalysis.importantClauses.length}
           </p>
-          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1 group-hover:bg-amber-100 transition-colors">
             {getTranslation('clauseFlagsLabel', language)}
           </span>
-        </div>
+        </button>
 
-        {/* Card 4: Missing Info */}
-        <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            {getTranslation('missingInfo', language)}
+        {/* Card 4: Government Services (Interactive) */}
+        <button
+          type="button"
+          onClick={() => scrollToSection('section-govt-services')}
+          className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer text-left group active:scale-[0.98] w-full"
+          title={getTranslation('exploreServicesLabel', language)}
+        >
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1 group-hover:text-emerald-700 transition-colors truncate">
+            {getTranslation('govtServicesLabel', language)}
           </span>
-          <p className="text-xl font-black text-amber-600">
-            {currentAnalysis.missingInformation.length}
+          <p className="text-xl font-black text-emerald-700">
+            {currentAnalysis.relevantServices?.length || 0}
           </p>
-          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-            {getTranslation('toCheckLabel', language)}
+          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1 group-hover:bg-emerald-100 transition-colors">
+            {getTranslation('portalsCountLabel', language)}
           </span>
-        </div>
+        </button>
 
-        {/* Card 5: Status */}
+        {/* Card 5: Status (Static) */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
             {getTranslation('statusLabel', language)}
           </span>
-          <p className="text-sm font-black text-amber-700 flex items-center gap-1">
+          <p className="text-sm font-black text-amber-700 flex items-center gap-1 truncate">
             {statusEmoji} {getTranslation(statusKey, language)}
           </p>
           <span className="text-[10px] font-bold text-gray-500">{getTranslation('actionRequiredLabel', language)}</span>
