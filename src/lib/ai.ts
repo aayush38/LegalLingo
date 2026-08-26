@@ -202,6 +202,7 @@ export function getTranslatedExplanation(
  */
 export function collectTranslatableStrings(analysis: DocumentAnalysis): string[] {
   const strings: (string | undefined)[] = [
+    analysis.documentTitle,
     analysis.documentType,
     analysis.summary,
     analysis.verySimpleSummary,

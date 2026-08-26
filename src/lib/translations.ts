@@ -236,8 +236,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     startAnalysisLabel: 'Analyse Selected Documents',
     clearAllLabel: 'Clear All',
     removeFileLabel: 'Remove file',
-    documentsSelectedCount: 'documents ready for analysis',
-    singleDocumentSelectedCount: 'document ready for analysis',
+    // Saved Documents Keys (Phase 3)
+    analyzedBadge: 'Analyzed',
+    openAnalysisLabel: 'Open Analysis',
+    filesLabel: 'files',
+    fileLabel: 'file',
+    backToMyDocs: 'Back to My Documents',
+    analysisNotFoundTitle: 'Analysis Not Found',
+    analysisNotFoundDesc: 'We could not find this saved document analysis. It may have been removed or the link is invalid.',
   },
 
   hi: {
@@ -475,8 +481,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     startAnalysisLabel: 'चयनित दस्तावेज़ों का विश्लेषण करें',
     clearAllLabel: 'सभी हटाएं',
     removeFileLabel: 'फ़ाइल हटाएं',
-    documentsSelectedCount: 'दस्तावेज़ विश्लेषण के लिए तैयार',
-    singleDocumentSelectedCount: 'दस्तावेज़ विश्लेषण के लिए तैयार',
+    // Saved Documents Keys (Phase 3)
+    analyzedBadge: 'विश्लेषित',
+    openAnalysisLabel: 'विश्लेषण खोलें',
+    filesLabel: 'फ़ाइलें',
+    fileLabel: 'फ़ाइल',
+    backToMyDocs: 'माई डॉक्यूमेंट्स पर वापस जाएं',
+    analysisNotFoundTitle: 'विश्लेषण नहीं मिला',
+    analysisNotFoundDesc: 'हमें यह सहेजा गया दस्तावेज़ विश्लेषण नहीं मिला। हो सकता है इसे हटा दिया गया हो या लिंक अमान्य हो।',
   },
 
   mr: {
@@ -714,8 +726,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     startAnalysisLabel: 'निवडलेल्या दस्तऐवजांचे विश्लेषण करा',
     clearAllLabel: 'सर्व काढा',
     removeFileLabel: 'फाइल काढा',
-    documentsSelectedCount: 'दस्तऐवज विश्लेषणासाठी तयार',
-    singleDocumentSelectedCount: 'दस्तऐवज विश्लेषणासाठी तयार',
+    // Saved Documents Keys (Phase 3)
+    analyzedBadge: 'विश्लेषित',
+    openAnalysisLabel: 'विश्लेषण उघडा',
+    filesLabel: 'फाइल्स',
+    fileLabel: 'फाइल',
+    backToMyDocs: 'माझे दस्तऐवज वर परत जा',
+    analysisNotFoundTitle: 'विश्लेषण सापडले नाही',
+    analysisNotFoundDesc: 'आम्हाला हे जतन केलेले दस्तऐवज विश्लेषण सापडले नाही. ते काढले गेले असू शकते किंवा लिंक अवैध आहे.',
   },
 
   gu: {
@@ -953,8 +971,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     startAnalysisLabel: 'પસંદ કરેલા દસ્તાવેજોનું વિશ્લેષણ કરો',
     clearAllLabel: 'બધું સાફ કરો',
     removeFileLabel: 'ફાઇલ દૂર કરો',
-    documentsSelectedCount: 'દસ્તાવેજો વિશ્લેષણ માટે તૈયાર',
-    singleDocumentSelectedCount: 'દસ્તાવેજ વિશ્લેષણ માટે તૈયાર',
+    // Saved Documents Keys (Phase 3)
+    analyzedBadge: 'વિશ્લેષિત',
+    openAnalysisLabel: 'વિશ્લેષણ ખોલો',
+    filesLabel: 'ફાઇલો',
+    fileLabel: 'ફાઇલ',
+    backToMyDocs: 'મારા દસ્તાવેજો પર પાછા જાઓ',
+    analysisNotFoundTitle: 'વિશ્લેષણ મળ્યું નથી',
+    analysisNotFoundDesc: 'અમને આ સાચવેલ દસ્તાવેજ વિશ્લેષણ મળ્યું નથી. કદાચ તે કાઢી નાખવામાં આવ્યું છે અથવા લિંક અમાન્ય છે.',
   }
 };
 
