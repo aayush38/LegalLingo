@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Mic, BookOpenCheck, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Mic, Sparkles } from 'lucide-react';
 import { UploadDropzone } from './UploadDropzone';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
@@ -56,40 +56,6 @@ export const LandingHero: React.FC = () => {
 
         {/* Embedded Upload Uploader Box */}
         <UploadDropzone />
-      </div>
-
-      {/* Three Civic Feature Cards: Understand, Check, Act */}
-      <div className="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <div className="bg-white rounded-3xl p-6 shadow-md border border-emerald-100 hover:shadow-xl transition-all group">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <BookOpenCheck className="w-6 h-6" />
-          </div>
-          <h3 className="text-lg font-black text-emerald-950 mb-2">{getTranslation('understand', language)}</h3>
-          <p className="text-sm text-slate-800 font-bold leading-relaxed">
-            {getTranslation('understandDesc', language)}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl p-6 shadow-md border border-emerald-100 hover:shadow-xl transition-all group">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <h3 className="text-lg font-black text-emerald-950 mb-2">{getTranslation('check', language)}</h3>
-          <p className="text-sm text-slate-800 font-bold leading-relaxed">
-            {getTranslation('checkDesc', language)}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl p-6 shadow-md border border-emerald-100 hover:shadow-xl transition-all group">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <h3 className="text-lg font-black text-emerald-950 mb-2">{getTranslation('act', language)}</h3>
-          <p className="text-sm text-slate-800 font-bold leading-relaxed">
-            {getTranslation('actDesc', language)}
-          </p>
-        </div>
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Edit3, Columns, AlignLeft, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Volume2, VolumeX, Columns, AlignLeft, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
 import { getTranslatedExplanation } from '@/lib/ai';
@@ -11,7 +11,7 @@ interface DocumentReaderProps {
   onOpenOcrEditor?: () => void;
 }
 
-export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor }) => {
+export const DocumentReader: React.FC<DocumentReaderProps> = () => {
   const { currentAnalysis, language, translationCache, privacyShield, selectedParagraphId, setSelectedParagraphId } = useApp();
   const [viewMode, setViewMode] = useState<'sideBySide' | 'simple' | 'original'>('sideBySide');
   const [speakingParagraphId, setSpeakingParagraphId] = useState<number | null>(null);
@@ -62,7 +62,7 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
           </p>
         </div>
 
-        {/* View Mode Tabs & Edit Text */}
+        {/* View Mode Tabs */}
         <div className="flex items-center gap-2 flex-wrap">
 
           <div className="flex items-center bg-gray-100 p-1 rounded-2xl border border-gray-200">
@@ -90,15 +90,6 @@ export const DocumentReader: React.FC<DocumentReaderProps> = ({ onOpenOcrEditor 
               <AlignLeft className="w-3.5 h-3.5" /> {getTranslation('original', language)}
             </button>
           </div>
-
-          {onOpenOcrEditor && (
-            <button
-              onClick={onOpenOcrEditor}
-              className="px-3 py-2 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 rounded-2xl text-xs font-extrabold flex items-center gap-1.5 transition-colors border border-emerald-200"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-emerald-600" /> {getTranslation('editText', language)}
-            </button>
-          )}
         </div>
       </div>
 

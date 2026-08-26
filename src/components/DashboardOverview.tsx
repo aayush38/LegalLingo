@@ -21,7 +21,6 @@ const STATUS_EMOJI: Record<string, string> = {
 
 export const DashboardOverview: React.FC = () => {
   const { currentAnalysis, language, translationCache, privacyShield } = useApp();
-  const [evenSimpler, setEvenSimpler] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
   if (!currentAnalysis) return null;
@@ -33,9 +32,7 @@ export const DashboardOverview: React.FC = () => {
 
   const simpleText = applyPrivacyMask(
     getTranslatedExplanation(
-      evenSimpler && currentAnalysis.extraSimpleSummary
-        ? currentAnalysis.extraSimpleSummary
-        : currentAnalysis.verySimpleSummary,
+      currentAnalysis.verySimpleSummary,
       language,
       translationCache
     ),
@@ -50,7 +47,7 @@ export const DashboardOverview: React.FC = () => {
     <section className="space-y-6 mb-10">
       
       {/* Top Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         
         {/* Card 1: Type */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
@@ -102,20 +99,7 @@ export const DashboardOverview: React.FC = () => {
           </span>
         </div>
 
-        {/* Card 5: Language */}
-        <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-            {getTranslation('languageLabel', language)}
-          </span>
-          <p className="text-base font-black text-emerald-950 capitalize">
-            {language === 'en' ? 'English' : language === 'hi' ? 'हिंदी (Hindi)' : language === 'mr' ? 'मराठी (Marathi)' : 'ગુજરાતી (Gujarati)'}
-          </p>
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-            {getTranslation('citizenModeLabel', language)}
-          </span>
-        </div>
-
-        {/* Card 6: Status */}
+        {/* Card 5: Status */}
         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
             {getTranslation('statusLabel', language)}
@@ -175,23 +159,9 @@ export const DashboardOverview: React.FC = () => {
 
           {/* Simple Words Card */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-emerald-300" /> {getTranslation('inVerySimpleWords', language)}
-              </h3>
-
-              {/* Make It Even Simpler Button */}
-              <button
-                onClick={() => setEvenSimpler(!evenSimpler)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
-                  evenSimpler
-                    ? 'bg-emerald-400 text-emerald-950 border-emerald-300'
-                    : 'bg-white/15 text-emerald-100 hover:bg-white/25 border-white/20'
-                }`}
-              >
-                {evenSimpler ? getTranslation('superSimpleActive', language) : getTranslation('makeItEvenSimpler', language)}
-              </button>
-            </div>
+            <h3 className="text-lg font-black text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-300" /> {getTranslation('inVerySimpleWords', language)}
+            </h3>
 
             <p className="text-base sm:text-xl font-bold text-white leading-snug">
               {simpleText}

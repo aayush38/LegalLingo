@@ -1,22 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { LandingHero } from '@/components/LandingHero';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { DocumentReader } from '@/components/DocumentReader';
-import { FiveQuestionsCard } from '@/components/FiveQuestionsCard';
 import { ClauseRiskAnalysis } from '@/components/ClauseRiskAnalysis';
 import { DocumentHealthScore } from '@/components/DocumentHealthScore';
 import { DifficultWordsGlossary } from '@/components/DifficultWordsGlossary';
 import { MissingInfoSection } from '@/components/MissingInfoSection';
 import { ActionChecklist } from '@/components/ActionChecklist';
 import { GovtServicesSection } from '@/components/GovtServicesSection';
-import { OcrTextEditorModal } from '@/components/OcrTextEditorModal';
 import { useApp } from '@/context/AppContext';
 
 export default function HomePage() {
   const { currentAnalysis } = useApp();
-  const [isOcrEditorOpen, setIsOcrEditorOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-[#F4FBF7] pb-16">
@@ -32,10 +29,7 @@ export default function HomePage() {
           <DashboardOverview />
 
           {/* Document Reader (Side-by-Side, Simple, Original) */}
-          <DocumentReader onOpenOcrEditor={() => setIsOcrEditorOpen(true)} />
-
-          {/* What You Need to Know (5 Citizen Questions) */}
-          <FiveQuestionsCard />
+          <DocumentReader />
 
           {/* Risk and Clause Analysis */}
           <ClauseRiskAnalysis />
@@ -57,12 +51,6 @@ export default function HomePage() {
 
         </div>
       )}
-
-      {/* OCR Text Correction Drawer / Modal */}
-      <OcrTextEditorModal
-        isOpen={isOcrEditorOpen}
-        onClose={() => setIsOcrEditorOpen(false)}
-      />
 
     </main>
   );

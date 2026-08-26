@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { FolderHeart, FileText, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { FolderHeart } from 'lucide-react';
 import { SavedDocuments } from '@/components/SavedDocuments';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
@@ -26,13 +25,6 @@ export default function MyDocumentsPage() {
             {getTranslation('myAnalyzedDocsSubText', language)}
           </p>
         </div>
-
-        <Link
-          href="/upload"
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-        >
-          <FileText className="w-4 h-4" /> {getTranslation('uploadNewDocLabel', language)}
-        </Link>
       </div>
 
       <SavedDocuments />
