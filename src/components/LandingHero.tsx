@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Mic, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { UploadDropzone } from './UploadDropzone';
 import { useApp } from '@/context/AppContext';
 import { getTranslation } from '@/lib/translations';
 
 export const LandingHero: React.FC = () => {
-  const { setIsChatOpen, language } = useApp();
+  const { isChatOpen, setIsChatOpen, language } = useApp();
 
   return (
     <section className="relative pt-6 pb-12 overflow-hidden">
@@ -41,22 +41,23 @@ export const LandingHero: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Voice Ask Button */}
-        <div className="flex justify-center mb-10">
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-black text-sm shadow-xl flex items-center gap-2.5 transition-transform hover:scale-105 border-2 border-emerald-400"
-          >
-            <div className="w-6 h-6 rounded-full bg-white text-emerald-800 flex items-center justify-center animate-bounce">
-              <Mic className="w-4 h-4" />
-            </div>
-            <span>{getTranslation('askByVoice', language)}</span>
-          </button>
-        </div>
-
         {/* Embedded Upload Uploader Box */}
         <UploadDropzone />
       </div>
+
+      {/* Floating Fixed Bottom-Right Chatbot Launcher */}
+      {!isChatOpen && (
+        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
+          <button
+            type="button"
+            onClick={() => setIsChatOpen(true)}
+            aria-label={getTranslation('chatbotLauncherLabel', language)}
+            className="min-h-[48px] px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-black text-sm shadow-2xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95 border-2 border-emerald-400 focus-visible:ring-4 focus-visible:ring-emerald-300 focus-visible:outline-none cursor-pointer"
+          >
+            <span>{getTranslation('chatbotLauncherLabel', language)}</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 };

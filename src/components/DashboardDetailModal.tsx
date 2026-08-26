@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Sparkles,
   Info,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
@@ -39,7 +40,8 @@ const STATUS_EMOJI: Record<string, string> = {
 };
 
 export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type, onClose }) => {
-  const { currentAnalysis, language, translationCache, privacyShield } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield, setSelectedClause, setIsChatOpen } = useApp();
+  const [activeClauseId, setActiveClauseId] = React.useState<string | null>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -72,6 +74,12 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
   const highRiskCount = importantClauses.filter((c) => c.riskLevel === 'high').length;
   const reviewCount = importantClauses.filter((c) => c.riskLevel === 'review').length;
   const standardCount = importantClauses.filter((c) => c.riskLevel === 'standard').length;
+
+  const currentSelectedClause =
+    importantClauses.find((c) => c.id === activeClauseId) ||
+    importantClauses.find((c) => c.riskLevel === 'high') ||
+    importantClauses[0] ||
+    null;
 
   const completeness = currentAnalysis.completenessBreakdown || {
     identityInfo: 80,
@@ -214,6 +222,7 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
                   </div>
                 ) : (
                   importantClauses.map((clause) => {
+                    const isSelected = (currentSelectedClause?.id === clause.id);
                     const isHigh = clause.riskLevel === 'high';
                     const isReview = clause.riskLevel === 'review';
 
@@ -229,7 +238,9 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
                       ? 'bg-amber-100 text-amber-900 border-amber-200'
                       : 'bg-emerald-100 text-emerald-800 border-emerald-200';
 
-                    const cardBorder = isHigh
+                    const cardBorder = isSelected
+                      ? 'border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-500/20'
+                      : isHigh
                       ? 'border-red-200 bg-red-50/20'
                       : isReview
                       ? 'border-amber-200 bg-amber-50/20'
@@ -244,7 +255,8 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
                     return (
                       <div
                         key={clause.id}
-                        className={`rounded-2xl p-4 sm:p-5 border ${cardBorder} shadow-2xs space-y-3`}
+                        onClick={() => setActiveClauseId(clause.id)}
+                        className={`rounded-2xl p-4 sm:p-5 border ${cardBorder} shadow-2xs space-y-3 transition-all cursor-pointer`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <h5 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
@@ -549,11 +561,30 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
         </div>
 
         {/* MODAL FOOTER */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-end gap-3">
+          {type === 'risk' && importantClauses.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (currentSelectedClause) {
+                  setSelectedClause(currentSelectedClause);
+                }
+                setIsChatOpen(true);
+                onClose();
+              }}
+              aria-label={getTranslation('askClauseButton', language)}
+              className="min-h-[44px] px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-black transition-colors cursor-pointer shadow-md flex items-center justify-center gap-2 active:scale-98 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-100" />
+              <span>{getTranslation('askClauseButton', language)}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-extrabold transition-colors cursor-pointer shadow-xs active:scale-98"
+            aria-label={getTranslation('closeLabel', language)}
+            className="min-h-[44px] px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs sm:text-sm font-extrabold transition-colors cursor-pointer shadow-xs active:scale-98 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
           >
             {getTranslation('closeLabel', language)}
           </button>

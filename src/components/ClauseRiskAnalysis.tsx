@@ -8,7 +8,7 @@ import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
 
 export const ClauseRiskAnalysis: React.FC = () => {
-  const { currentAnalysis, language, translationCache, privacyShield, setIsChatOpen } = useApp();
+  const { currentAnalysis, language, translationCache, privacyShield, setIsChatOpen, setSelectedClause } = useApp();
 
   if (!currentAnalysis || !currentAnalysis.importantClauses) return null;
 
@@ -125,8 +125,13 @@ export const ClauseRiskAnalysis: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setIsChatOpen(true)}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 self-start sm:self-auto"
+                  type="button"
+                  onClick={() => {
+                    setSelectedClause(clause);
+                    setIsChatOpen(true);
+                  }}
+                  aria-label={getTranslation('askAboutClause', language)}
+                  className="min-h-[38px] px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 self-start sm:self-auto cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>{getTranslation('askAboutClause', language)}</span>

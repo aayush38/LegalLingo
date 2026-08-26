@@ -120,8 +120,11 @@ export const Footer: React.FC = () => {
         </Link>
 
         <button
+          type="button"
           onClick={() => setIsChatOpen(true)}
-          className="flex flex-col items-center text-[10px] font-bold text-white bg-emerald-600 p-2 rounded-full shadow-lg -mt-4 border-2 border-emerald-400"
+          title={getTranslation('chatbotLauncherLabel', language)}
+          aria-label={getTranslation('chatbotLauncherLabel', language)}
+          className="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-[10px] font-bold text-white bg-emerald-600 p-2 rounded-full shadow-lg -mt-4 border-2 border-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:outline-none"
         >
           <Mic className="w-5 h-5 text-white" />
         </button>

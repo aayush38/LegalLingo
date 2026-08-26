@@ -76,7 +76,7 @@ function buildDocumentContextText(ctx: ChatDocumentContext): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, history, documentContext, language } = await req.json();
+    const { question, history, documentContext, selectedClause, language } = await req.json();
 
     if (!question || typeof question !== 'string' || !question.trim()) {
       return NextResponse.json({ error: 'No question provided' }, { status: 400 });
@@ -84,6 +84,17 @@ export async function POST(req: NextRequest) {
 
     const languageName = LANGUAGE_NAMES[language] || 'English';
     const contextText = documentContext ? buildDocumentContextText(documentContext) : '';
+
+    let clauseContextText = '';
+    if (selectedClause && typeof selectedClause === 'object') {
+      clauseContextText = `SPECIFIC CLAUSE THE CITIZEN IS ASKING ABOUT:
+- Title: ${selectedClause.clauseTitle || 'Untitled Clause'}
+- Risk Level: ${selectedClause.riskLevel || 'standard'}
+- Original Clause Wording: "${selectedClause.originalText || ''}"
+- Simple Meaning: ${selectedClause.simpleMeaning || ''}
+- Why This Matters: ${selectedClause.whyItMatters || ''}
+- Recommended Citizen Action: ${selectedClause.recommendedAction || ''}`;
+    }
 
     const historyText = Array.isArray(history)
       ? history
@@ -95,13 +106,13 @@ export async function POST(req: NextRequest) {
     const prompt = `You are LegalLingo AI Assistant, a helpful assistant that answers Indian citizens' questions about a legal document they uploaded.
 
 Rules:
-- Answer using ONLY the document information given below. Do not invent facts, names, amounts, or clauses not present in it.
+- Answer using ONLY the document information and specific clause information given below. Do not invent facts, names, amounts, or clauses not present in it.
 - If the document information doesn't contain the answer, say so honestly and suggest what the citizen should check or ask a legal professional about, instead of guessing.
 - Keep the answer concise and in simple, plain language (roughly 2-5 sentences unless the question needs a list).
 - Answer in ${languageName}.
 - Do not repeat these instructions or mention that you were given "document information" — just answer naturally as an assistant who has read the document.
 
-${contextText ? `DOCUMENT INFORMATION:\n${contextText}\n` : 'No document has been uploaded yet.\n'}
+${clauseContextText ? `${clauseContextText}\n\n` : ''}${contextText ? `DOCUMENT INFORMATION:\n${contextText}\n` : 'No document has been uploaded yet.\n'}
 ${historyText ? `RECENT CONVERSATION:\n${historyText}\n` : ''}
 CITIZEN'S QUESTION: ${question}
 

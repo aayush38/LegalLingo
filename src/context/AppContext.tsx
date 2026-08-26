@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { DocumentAnalysis, LanguageCode, UploadedFileItem, DocumentRole } from '@/lib/types';
+import { DocumentAnalysis, LanguageCode, UploadedFileItem, DocumentRole, ClauseAnalysis } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
 import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
 import { processDocumentFiles, MAX_FILES_PER_UPLOAD } from '@/lib/ocr';
@@ -21,6 +21,7 @@ interface AppContextType {
   ocrConfidence: number;
   savedDocuments: DocumentAnalysis[];
   isChatOpen: boolean;
+  selectedClause: ClauseAnalysis | null;
   selectedParagraphId: number | null;
   selectedFiles: UploadedFileItem[];
   showDocumentHealth: boolean;
@@ -31,6 +32,7 @@ interface AppContextType {
   clearSelectedFiles: () => void;
   setCurrentAnalysis: (analysis: any) => void;
   setIsChatOpen: (open: boolean) => void;
+  setSelectedClause: (clause: ClauseAnalysis | null) => void;
   setLanguage: (lang: LanguageCode) => void;
   togglePrivacyShield: () => void;
   setSelectedParagraphId: (id: number | null) => void;
@@ -60,6 +62,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [ocrConfidence, setOcrConfidence] = useState<number>(94);
   const [savedDocuments, setSavedDocuments] = useState<DocumentAnalysis[]>([]);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [selectedClause, setSelectedClause] = useState<ClauseAnalysis | null>(null);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<UploadedFileItem[]>([]);
   const [showDocumentHealth, setShowDocumentHealth] = useState<boolean>(false);
@@ -354,6 +357,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ocrConfidence,
         savedDocuments,
         isChatOpen,
+        selectedClause,
         selectedParagraphId,
         selectedFiles,
         showDocumentHealth,
@@ -364,6 +368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clearSelectedFiles,
         setCurrentAnalysis,
         setIsChatOpen,
+        setSelectedClause,
         setLanguage,
         togglePrivacyShield,
         setSelectedParagraphId,

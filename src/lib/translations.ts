@@ -279,6 +279,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     noGovtServicesDesc: 'No specific government portals were identified for this document type.',
     openOfficialPortal: 'Open Official Portal',
     whyRelevantLabel: 'Why this is relevant:',
+    // Chatbot & Clause interaction keys (Phase 5)
+    chatbotLauncherLabel: 'LegalLingo Chatbot',
+    askClauseButton: 'Ask LegalLingo about this clause',
+    selectedClauseContext: 'Discussing Clause:',
+    clearClauseContext: 'Clear clause focus',
   },
 
   hi: {
@@ -559,6 +564,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     noGovtServicesDesc: 'इस दस्तावेज़ प्रकार के लिए किसी विशिष्ट सरकारी पोर्टल की पहचान नहीं की गई।',
     openOfficialPortal: 'आधिकारिक पोर्टल खोलें',
     whyRelevantLabel: 'यह क्यों प्रासंगिक है:',
+    // Chatbot & Clause interaction keys (Phase 5)
+    chatbotLauncherLabel: 'LegalLingo चैटबॉट',
+    askClauseButton: 'इस धारा के बारे में LegalLingo से पूछें',
+    selectedClauseContext: 'चयनित धारा:',
+    clearClauseContext: 'धारा का चयन हटाएं',
   },
 
   mr: {
@@ -839,6 +849,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     noGovtServicesDesc: 'या दस्तऐवज प्रकारासाठी कोणतेही विशिष्ट शासकीय पोर्टल ओळखले गेले नाही.',
     openOfficialPortal: 'अधिकृत पोर्टल उघडा',
     whyRelevantLabel: 'हे का महत्त्वाचे आहे:',
+    // Chatbot & Clause interaction keys (Phase 5)
+    chatbotLauncherLabel: 'LegalLingo चॅटबॉट',
+    askClauseButton: 'या कलमाबद्दल LegalLingo ला विचारा',
+    selectedClauseContext: 'निवडलेले कलम:',
+    clearClauseContext: 'कलम निवड काढा',
   },
 
   gu: {
@@ -1119,6 +1134,11 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     noGovtServicesDesc: 'આ દસ્તાવેજ પ્રકાર માટે કોઈ ચોક્કસ સરકારી પોર્ટલ ઓળખાયા નથી.',
     openOfficialPortal: 'સત્તાવાર પોર્ટલ ખોલો',
     whyRelevantLabel: 'આ કેમ સુસંગત છે:',
+    // Chatbot & Clause interaction keys (Phase 5)
+    chatbotLauncherLabel: 'LegalLingo ચેટબોટ',
+    askClauseButton: 'આ કલમ વિશે LegalLingo ને પૂછો',
+    selectedClauseContext: 'પસંદ કરેલ કલમ:',
+    clearClauseContext: 'કલમ પસંદગી દૂર કરો',
   }
 };
 
