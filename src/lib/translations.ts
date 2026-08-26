@@ -223,6 +223,21 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     pdfReviewNeededTag: 'REVIEW NEEDED',
     pdfStandardTag: 'STANDARD',
     pdfDisclaimerLabel: 'Disclaimer',
+
+    // Multi-File Upload Keys (Phase 2)
+    selectedDocumentsLabel: 'Selected Documents',
+    primaryDocLabel: 'Primary Document',
+    supportingDocLabel: 'Supporting Document',
+    primaryRoleBadge: 'Primary',
+    supportingRoleBadge: 'Supporting',
+    primaryRoleDesc: 'Main document to analyze',
+    supportingRoleDesc: 'Supporting context & evidence',
+    addMoreFilesLabel: 'Add More Files',
+    startAnalysisLabel: 'Analyse Selected Documents',
+    clearAllLabel: 'Clear All',
+    removeFileLabel: 'Remove file',
+    documentsSelectedCount: 'documents ready for analysis',
+    singleDocumentSelectedCount: 'document ready for analysis',
   },
 
   hi: {
@@ -447,6 +462,21 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     pdfReviewNeededTag: 'समीक्षा आवश्यक है',
     pdfStandardTag: 'सामान्य',
     pdfDisclaimerLabel: 'अस्वीकरण',
+
+    // Multi-File Upload Keys (Phase 2)
+    selectedDocumentsLabel: 'चयनित दस्तावेज़',
+    primaryDocLabel: 'मुख्य दस्तावेज़',
+    supportingDocLabel: 'सहायक दस्तावेज़',
+    primaryRoleBadge: 'मुख्य (Primary)',
+    supportingRoleBadge: 'सहायक (Supporting)',
+    primaryRoleDesc: 'विश्लेषण के लिए मुख्य दस्तावेज़',
+    supportingRoleDesc: 'संदर्भ और प्रमाण दस्तावेज़',
+    addMoreFilesLabel: 'और फ़ाइलें जोड़ें',
+    startAnalysisLabel: 'चयनित दस्तावेज़ों का विश्लेषण करें',
+    clearAllLabel: 'सभी हटाएं',
+    removeFileLabel: 'फ़ाइल हटाएं',
+    documentsSelectedCount: 'दस्तावेज़ विश्लेषण के लिए तैयार',
+    singleDocumentSelectedCount: 'दस्तावेज़ विश्लेषण के लिए तैयार',
   },
 
   mr: {
@@ -671,6 +701,21 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     pdfReviewNeededTag: 'तपासणी आवश्यक',
     pdfStandardTag: 'सामान्य',
     pdfDisclaimerLabel: 'अस्वीकरण',
+
+    // Multi-File Upload Keys (Phase 2)
+    selectedDocumentsLabel: 'निवडलेले दस्तऐवज',
+    primaryDocLabel: 'मुख्य दस्तऐवज',
+    supportingDocLabel: 'सहाय्यक दस्तऐवज',
+    primaryRoleBadge: 'मुख्य (Primary)',
+    supportingRoleBadge: 'सहाय्यक (Supporting)',
+    primaryRoleDesc: 'विश्लेषणासाठी मुख्य दस्तऐवज',
+    supportingRoleDesc: 'संदर्भ आणि पुराव्याचा दस्तऐवज',
+    addMoreFilesLabel: 'आणखी फाइल्स जोडा',
+    startAnalysisLabel: 'निवडलेल्या दस्तऐवजांचे विश्लेषण करा',
+    clearAllLabel: 'सर्व काढा',
+    removeFileLabel: 'फाइल काढा',
+    documentsSelectedCount: 'दस्तऐवज विश्लेषणासाठी तयार',
+    singleDocumentSelectedCount: 'दस्तऐवज विश्लेषणासाठी तयार',
   },
 
   gu: {
@@ -895,6 +940,21 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     pdfReviewNeededTag: 'તપાસ જરૂરી છે',
     pdfStandardTag: 'સામાન્ય',
     pdfDisclaimerLabel: 'અસ્વીકરણ',
+
+    // Multi-File Upload Keys (Phase 2)
+    selectedDocumentsLabel: 'પસંદ કરેલા દસ્તાવેજો',
+    primaryDocLabel: 'મુખ્ય દસ્તાવેજ',
+    supportingDocLabel: 'સહાયક દસ્તાવેજ',
+    primaryRoleBadge: 'મુખ્ય (Primary)',
+    supportingRoleBadge: 'સહાયક (Supporting)',
+    primaryRoleDesc: 'વિશ્લેષણ માટે મુખ્ય દસ્તાવેજ',
+    supportingRoleDesc: 'સંદર્ભ અને પુરાવા દસ્તાવેજ',
+    addMoreFilesLabel: 'વધુ ફાઇલો ઉમેરો',
+    startAnalysisLabel: 'પસંદ કરેલા દસ્તાવેજોનું વિશ્લેષણ કરો',
+    clearAllLabel: 'બધું સાફ કરો',
+    removeFileLabel: 'ફાઇલ દૂર કરો',
+    documentsSelectedCount: 'દસ્તાવેજો વિશ્લેષણ માટે તૈયાર',
+    singleDocumentSelectedCount: 'દસ્તાવેજ વિશ્લેષણ માટે તૈયાર',
   }
 };
 

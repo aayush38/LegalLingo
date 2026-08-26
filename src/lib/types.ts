@@ -1,5 +1,14 @@
 export type LanguageCode = 'en' | 'hi' | 'mr' | 'gu';
 
+export type DocumentRole = 'primary' | 'supporting';
+
+export interface UploadedFileItem {
+  id: string;
+  file: File;
+  role: DocumentRole;
+  previewUrl?: string;
+}
+
 export interface LanguageOption {
   code: LanguageCode;
   name: string;

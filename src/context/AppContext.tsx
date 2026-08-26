@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { DocumentAnalysis, LanguageCode } from '@/lib/types';
+import { DocumentAnalysis, LanguageCode, UploadedFileItem, DocumentRole } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
 import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
 import { processDocumentFiles, MAX_FILES_PER_UPLOAD } from '@/lib/ocr';
@@ -22,6 +22,11 @@ interface AppContextType {
   savedDocuments: DocumentAnalysis[];
   isChatOpen: boolean;
   selectedParagraphId: number | null;
+  selectedFiles: UploadedFileItem[];
+  addSelectedFiles: (files: File[]) => void;
+  removeSelectedFile: (id: string) => void;
+  updateFileRole: (id: string, role: DocumentRole) => void;
+  clearSelectedFiles: () => void;
   setCurrentAnalysis: (analysis: any) => void;
   setIsChatOpen: (open: boolean) => void;
   setLanguage: (lang: LanguageCode) => void;
@@ -29,7 +34,7 @@ interface AppContextType {
   setSelectedParagraphId: (id: number | null) => void;
   loadSampleDocument: () => void;
   processUploadedFile: (file: File) => Promise<void>;
-  processUploadedFiles: (files: File[]) => Promise<void>;
+  processUploadedFiles: (files?: (File | UploadedFileItem)[]) => Promise<void>;
   updateExtractedText: (newText: string) => Promise<void>;
   toggleChecklistItem: (itemId: string) => void;
   deleteSavedDocument: (docId: string) => void;
@@ -54,6 +59,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [savedDocuments, setSavedDocuments] = useState<DocumentAnalysis[]>([]);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<UploadedFileItem[]>([]);
+
+  // Cleanup object URLs on unmount or file removal
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+  }, [selectedFiles]);
+
+  const addSelectedFiles = (newFiles: File[]) => {
+    if (!newFiles || newFiles.length === 0) return;
+    setSelectedFiles((prev) => {
+      const hasPrimary = prev.some((item) => item.role === 'primary');
+      const itemsToAdd: UploadedFileItem[] = newFiles.map((file, idx) => {
+        const isImg = file.type.startsWith('image/') || /\.(png|jpe?g)$/i.test(file.name);
+        const previewUrl = isImg ? URL.createObjectURL(file) : undefined;
+        const role: DocumentRole = (!hasPrimary && idx === 0) ? 'primary' : 'supporting';
+        return {
+          id: `doc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${idx}`,
+          file,
+          role,
+          previewUrl,
+        };
+      });
+      return [...prev, ...itemsToAdd].slice(0, MAX_FILES_PER_UPLOAD);
+    });
+  };
+
+  const removeSelectedFile = (id: string) => {
+    setSelectedFiles((prev) => {
+      const itemToRemove = prev.find((item) => item.id === id);
+      if (itemToRemove?.previewUrl) {
+        URL.revokeObjectURL(itemToRemove.previewUrl);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const updateFileRole = (id: string, role: DocumentRole) => {
+    setSelectedFiles((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, role } : item))
+    );
+  };
+
+  const clearSelectedFiles = () => {
+    selectedFiles.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    setSelectedFiles([]);
+  };
 
   const translationCacheRef = useRef(translationCacheByLang);
   useEffect(() => {
@@ -169,8 +226,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
    * single submission. Multiple files are combined server-side rather than
    * analyzed separately, so the summary and checklist cover the whole set.
    */
-  const processUploadedFiles = async (files: File[]) => {
-    const selected = files.slice(0, MAX_FILES_PER_UPLOAD);
+  const processUploadedFiles = async (filesOrItems?: (File | UploadedFileItem)[]) => {
+    let itemsToProcess: UploadedFileItem[] = [];
+
+    if (filesOrItems && filesOrItems.length > 0) {
+      itemsToProcess = filesOrItems.map((item, idx) => {
+        if ('file' in item && (item as UploadedFileItem).file instanceof File) {
+          return item as UploadedFileItem;
+        }
+        const file = item as File;
+        return {
+          id: `doc_${Date.now()}_${idx}`,
+          file,
+          role: (idx === 0 ? 'primary' : 'supporting') as DocumentRole,
+        };
+      });
+    } else {
+      itemsToProcess = selectedFiles;
+    }
+
+    if (itemsToProcess.length === 0) return;
+
+    // Order so primary files come first, followed by supporting files
+    const sortedItems = [...itemsToProcess].sort((a, b) => {
+      if (a.role === 'primary' && b.role !== 'primary') return -1;
+      if (a.role !== 'primary' && b.role === 'primary') return 1;
+      return 0;
+    });
+
+    const selected = sortedItems.map((item) => item.file).slice(0, MAX_FILES_PER_UPLOAD);
     if (selected.length === 0) return;
 
     setIsAnalyzing(true);
@@ -266,6 +350,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         savedDocuments,
         isChatOpen,
         selectedParagraphId,
+        selectedFiles,
+        addSelectedFiles,
+        removeSelectedFile,
+        updateFileRole,
+        clearSelectedFiles,
         setCurrentAnalysis,
         setIsChatOpen,
         setLanguage,
