@@ -1,149 +1,178 @@
 'use client';
 
 import { getSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/client';
-import { parseEmail, isValidOtp } from './email';
+import { parseEmail } from './email';
 
 /**
- * Passwordless email sign-in: a six-digit code sent to the citizen's address.
+ * Email and password sign-in.
  *
- * No password is set anywhere in this flow. That is the point — a password is
- * one more thing to forget, to reset over a slow connection, and to reuse from
- * somewhere it has already leaked. The account is only ever as reachable as the
- * inbox.
+ * Chosen over one-time codes for a practical reason: signing in this way sends
+ * no email at all. Supabase's built-in mailer is rate limited to a handful of
+ * messages an hour, so an emailed code would make signing in fail for the third
+ * citizen of the hour. A password costs one email at sign-up and none after.
  */
 
-/**
- * Translation keys for every failure this flow can produce.
- *
- * The auth layer returns a key, never a raw Supabase message: those are English
- * developer strings and this app's users read Hindi, Marathi and Gujarati.
- * Anything unrecognised falls back to authErrorGeneric rather than leaking the
- * raw text to someone who cannot act on it.
- */
 export type AuthErrorKey =
   | 'authErrorNotConfigured'
   | 'authErrorEmailProviderDisabled'
   | 'authErrorRateLimited'
   | 'authErrorInvalidEmail'
   | 'authErrorEmailRejected'
-  | 'authErrorInvalidOtp'
-  | 'authErrorOtpExpired'
-  | 'authErrorSendFailed'
+  | 'authErrorWrongCredentials'
+  | 'authErrorEmailNotConfirmed'
+  | 'authErrorWeakPassword'
+  | 'authErrorAlreadyRegistered'
   | 'authErrorNetwork'
   | 'authErrorGeneric';
 
 export interface AuthResult {
   ok: boolean;
   errorKey?: AuthErrorKey;
+  /**
+   * Set when the account was created but cannot be used until the emailed link
+   * is clicked. The caller shows "check your inbox" rather than a failure.
+   */
+  needsEmailConfirmation?: boolean;
   /** The raw provider message, for the console only — never rendered. */
   debug?: string;
 }
+
+/** Supabase's own default minimum. Enforced here so the error is in-language. */
+export const MIN_PASSWORD_LENGTH = 8;
 
 function mapAuthError(error: { code?: string; status?: number; message?: string }): AuthErrorKey {
   const code = error.code ?? '';
   const message = (error.message ?? '').toLowerCase();
 
-  if (code === 'email_provider_disabled' || message.includes('email logins are disabled')) {
-    return 'authErrorEmailProviderDisabled';
-  }
-  // Supabase's built-in mailer is rate limited hard, and this is the error a
-  // real deployment hits first. It is not the citizen's fault and it is
-  // temporary, so it must not read like a rejected address.
-  if (
-    code === 'over_email_send_rate_limit' ||
-    code === 'over_request_rate_limit' ||
-    error.status === 429
-  ) {
-    return 'authErrorRateLimited';
-  }
-  if (code === 'email_address_invalid' || code === 'validation_failed') {
+  if (code === 'email_provider_disabled') return 'authErrorEmailProviderDisabled';
+  if (code === 'email_address_invalid' || message.includes('invalid format'))
     return 'authErrorEmailRejected';
-  }
-  if (code === 'otp_expired' || message.includes('expired')) return 'authErrorOtpExpired';
-  if (code === 'otp_disabled' || message.includes('invalid') || message.includes('token'))
-    return 'authErrorInvalidOtp';
-  if (message.includes('send') && message.includes('fail')) return 'authErrorSendFailed';
+  if (code === 'user_already_exists' || code === 'email_exists' || message.includes('already registered'))
+    return 'authErrorAlreadyRegistered';
+  if (code === 'email_not_confirmed' || message.includes('not confirmed'))
+    return 'authErrorEmailNotConfirmed';
+  if (code === 'weak_password' || message.includes('password should be'))
+    return 'authErrorWeakPassword';
+  // Deliberately the same message for a wrong password and an unknown address:
+  // distinguishing them tells an attacker which addresses have accounts.
+  if (code === 'invalid_credentials' || message.includes('invalid login credentials'))
+    return 'authErrorWrongCredentials';
+  if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || error.status === 429)
+    return 'authErrorRateLimited';
   if (message.includes('fetch') || message.includes('network')) return 'authErrorNetwork';
 
   return 'authErrorGeneric';
 }
 
-/**
- * Sends a six-digit code to an email address, creating the account if it is new.
- *
- * `shouldCreateUser` is true because there is no separate sign-up step: a
- * citizen who has never used LegalLingo and one coming back to their documents
- * take exactly the same path.
- */
-export async function requestEmailOtp(emailInput: string): Promise<AuthResult> {
-  if (!isSupabaseConfigured()) {
-    return { ok: false, errorKey: 'authErrorNotConfigured' };
+function guard(emailInput: string, password: string): AuthResult | null {
+  if (!isSupabaseConfigured()) return { ok: false, errorKey: 'authErrorNotConfigured' };
+  if (!parseEmail(emailInput).ok) return { ok: false, errorKey: 'authErrorInvalidEmail' };
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, errorKey: 'authErrorWeakPassword' };
   }
+  return null;
+}
 
-  const parsed = parseEmail(emailInput);
-  if (!parsed.ok || !parsed.email) {
-    return { ok: false, errorKey: 'authErrorInvalidEmail' };
-  }
+/** Signs in an existing citizen. Sends no email. */
+export async function signInWithPassword(
+  emailInput: string,
+  password: string
+): Promise<AuthResult> {
+  const blocked = guard(emailInput, password);
+  if (blocked) return blocked;
 
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return { ok: false, errorKey: 'authErrorNotConfigured' };
 
   try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: parsed.email,
-      options: { shouldCreateUser: true }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: parseEmail(emailInput).email!,
+      password
     });
     if (error) {
-      console.warn('[auth] requestEmailOtp failed:', error.code, error.message);
+      console.warn('[auth] signIn failed:', error.code, error.message);
       return { ok: false, errorKey: mapAuthError(error), debug: error.message };
     }
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.warn('[auth] requestEmailOtp threw:', message);
     return { ok: false, errorKey: 'authErrorNetwork', debug: message };
   }
 }
 
 /**
- * Verifies the code and establishes the session.
+ * Creates an account.
  *
- * The profile row is created by a database trigger on auth.users, so there is
- * nothing to insert here — see supabase/README.md.
+ * When the project requires email confirmation, Supabase returns a user with no
+ * session and sends a link. That link must land on /auth/confirm — see the
+ * route for why the default template does not work with this client.
  */
-export async function verifyEmailOtp(emailInput: string, token: string): Promise<AuthResult> {
-  if (!isSupabaseConfigured()) {
-    return { ok: false, errorKey: 'authErrorNotConfigured' };
-  }
-
-  const parsed = parseEmail(emailInput);
-  if (!parsed.ok || !parsed.email) {
-    return { ok: false, errorKey: 'authErrorInvalidEmail' };
-  }
-  if (!isValidOtp(token)) {
-    return { ok: false, errorKey: 'authErrorInvalidOtp' };
-  }
+export async function signUpWithPassword(
+  emailInput: string,
+  password: string
+): Promise<AuthResult> {
+  const blocked = guard(emailInput, password);
+  if (blocked) return blocked;
 
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return { ok: false, errorKey: 'authErrorNotConfigured' };
 
   try {
-    const { error } = await supabase.auth.verifyOtp({
-      email: parsed.email,
-      token: token.trim(),
-      // 'email' covers both a first sign-up and a later sign-in; Supabase
-      // resolves which against the token it issued.
-      type: 'email'
+    const { data, error } = await supabase.auth.signUp({
+      email: parseEmail(emailInput).email!,
+      password,
+      options: {
+        emailRedirectTo:
+          typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : undefined
+      }
     });
     if (error) {
-      console.warn('[auth] verifyEmailOtp failed:', error.code, error.message);
+      console.warn('[auth] signUp failed:', error.code, error.message);
       return { ok: false, errorKey: mapAuthError(error), debug: error.message };
     }
-    return { ok: true };
+
+    // A session means the citizen is already in.
+    if (data.session) return { ok: true };
+
+    // Supabase deliberately returns a fake success when the address is already
+    // registered, so that signup cannot be used to discover who has an account.
+    // The tell is a user object carrying no identities. Without this check the
+    // UI says "check your email" for an account that already exists, and no
+    // email is ever coming — which is indistinguishable from the app being
+    // broken.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { ok: false, errorKey: 'authErrorAlreadyRegistered' };
+    }
+
+    // Genuinely awaiting confirmation: the project requires it and no
+    // auto-confirm is in place.
+    return { ok: true, needsEmailConfirmation: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.warn('[auth] verifyEmailOtp threw:', message);
     return { ok: false, errorKey: 'authErrorNetwork', debug: message };
+  }
+}
+
+/** Sends a password-reset link. Lands on /auth/confirm like every other link. */
+export async function requestPasswordReset(emailInput: string): Promise<AuthResult> {
+  if (!isSupabaseConfigured()) return { ok: false, errorKey: 'authErrorNotConfigured' };
+  const parsed = parseEmail(emailInput);
+  if (!parsed.ok || !parsed.email) return { ok: false, errorKey: 'authErrorInvalidEmail' };
+
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return { ok: false, errorKey: 'authErrorNotConfigured' };
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
+      // No `next`: the confirm route sends recovery links to the set-password
+      // screen by default, which is where this needs to land.
+      redirectTo:
+        typeof window !== 'undefined' ? `${window.location.origin}/auth/confirm` : undefined
+    });
+    if (error) return { ok: false, errorKey: mapAuthError(error), debug: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, errorKey: 'authErrorNetwork', debug: String(e) };
   }
 }
 
@@ -159,12 +188,3 @@ export async function signOut(): Promise<AuthResult> {
     return { ok: false, errorKey: 'authErrorNetwork', debug: String(e) };
   }
 }
-
-/**
- * How long the UI blocks a resend.
- *
- * Sixty seconds matches Supabase's default minimum interval between OTP
- * emails. Offering a resend button that is guaranteed to return a rate-limit
- * error would just teach people the app is broken.
- */
-export const RESEND_COOLDOWN_SECONDS = 60;

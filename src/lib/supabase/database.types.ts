@@ -21,6 +21,12 @@ export type Database = {
           id: string;
           email: string | null;
           phone: string | null;
+          date_of_birth: string | null;
+          gender: string | null;
+          address_line: string | null;
+          city: string | null;
+          pincode: string | null;
+          father_or_spouse_name: string | null;
           display_name: string | null;
           preferred_language: Database['public']['Enums']['language_code'];
           state: string | null;
@@ -37,6 +43,12 @@ export type Database = {
           id: string;
           email?: string | null;
           phone?: string | null;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          address_line?: string | null;
+          city?: string | null;
+          pincode?: string | null;
+          father_or_spouse_name?: string | null;
           display_name?: string | null;
           preferred_language?: Database['public']['Enums']['language_code'];
           state?: string | null;
@@ -53,6 +65,12 @@ export type Database = {
           id?: string;
           email?: string | null;
           phone?: string | null;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          address_line?: string | null;
+          city?: string | null;
+          pincode?: string | null;
+          father_or_spouse_name?: string | null;
           display_name?: string | null;
           preferred_language?: Database['public']['Enums']['language_code'];
           state?: string | null;

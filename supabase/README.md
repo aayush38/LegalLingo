@@ -87,56 +87,86 @@ RLS was tested against a planted row, not an empty table: with a real
 and filtered by known id), `401` on insert, and a `204` that deleted nothing.
 The security advisor reports zero lints.
 
-## Phase 2 — Email auth
+## Phase 2 — Email and password auth
 
-Sign-in is a six-digit code sent to the citizen's email address
-(`signInWithOtp({ email })` then `verifyOtp({ email, token, type: 'email' })`).
-No password is set anywhere: one less thing to forget, to reset over a slow
-connection, or to reuse from somewhere it has already leaked.
+Sign-in is email + password (`signInWithPassword`). Sign-up creates the account
+in the same modal; there is no separate registration page.
 
-There is no separate sign-up step. `shouldCreateUser` is true, so a first-time
-citizen and one returning to their documents take the same path.
+### Why not one-time codes
 
-Phone OTP was built first and then dropped: Indian SMS needs DLT registration
-with a telecom operator, and a Twilio trial cannot send it (trial accounts
-reject custom message bodies, cap at five verified recipients, and expire after
-30 days). `src/lib/auth/phone.ts` is kept for `profiles.phone`, which is a
-contact number rather than the login identity.
+The first attempt used `signInWithOtp` and a six-digit code box. That was wrong
+twice over, and both are worth recording:
 
-### The blocker before launch: SMTP
+**Supabase sends a magic link by default, not a code.** From their docs: *"Though
+the method is labelled 'OTP', it sends a Magic Link by default. The two methods
+differ only in the content of the confirmation email."* Getting a six-digit code
+requires editing the Magic Link email template to use `{{ .Token }}`. The code
+box was therefore asking for something the emails never contained.
 
-Supabase's built-in mailer **only delivers to addresses on the project
-organisation's team**, with a small per-hour cap, no SLA, and an explicit
-warning against production use. Every other address is refused. That is why a
-sign-in attempt from an ordinary address currently fails.
+**The link itself could not work.** `@supabase/ssr` uses the PKCE flow, where the
+emailed token must be exchanged by the application, not by Supabase's own verify
+endpoint. With the default template the exchange never happened and every link
+failed with `otp_expired` — the token was not expired, it was never redeemed.
 
-A custom SMTP server is therefore required before real citizens can sign in.
-Any SMTP service works — Resend, AWS SES, Postmark, SendGrid, ZeptoMail, Brevo.
-Configure it at Authentication → SMTP, or through the Management API. The
-initial rate limit after enabling is 30 messages/hour, adjustable on the Rate
-Limits page.
+Passwords also solve a practical problem: **signing in sends no email at all.**
+Given that the built-in mailer allows only a handful of messages an hour, an
+emailed code would simply fail for the third citizen of the hour. A password
+costs one email at sign-up and none afterwards.
 
-Supabase also recommends CAPTCHA on email auth, because bot signups against an
-open email flow are a standard way to burn a sending domain's reputation.
+### Required dashboard settings
+
+Two of these are not optional — links will keep failing without them.
+
+1. **URL Configuration → Site URL**: `http://localhost:3000` in development,
+   the real origin in production. Emailed links are built from this.
+
+2. **Email Templates** — point them at the application, not at Supabase:
+
+   *Confirm signup:*
+   ```html
+   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirm your account</a>
+   ```
+
+   *Reset password:*
+   ```html
+   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Choose a new password</a>
+   ```
+
+3. **Optional, for development:** Authentication → Providers → Email → turn
+   **Confirm email** off. Sign-up then creates a session immediately and the
+   whole flow needs no email whatsoever. Turn it back on before real users.
+
+4. **Custom SMTP is still required for production.** The built-in mailer only
+   delivers to the organisation's own team addresses.
+
+### Routes
+
+`/auth/confirm` exchanges an emailed token for a session. It validates that
+`next` is a same-origin path, so a crafted link cannot bounce a freshly
+authenticated citizen to another site, and it redirects to `/?auth_error=...`
+rather than showing a raw provider message.
+
+`/auth/set-password` is where a recovery link lands. An account created by the
+earlier magic-link flow has no password its owner knows; this is how they set
+one. Both routes are exempt from the onboarding gate, because they are reached
+from an email on a device that may never have opened the app.
 
 ### Verified
 
-Everything except the code round-trip itself, which cannot be exercised from
-here because the built-in mailer will not deliver to a test address and the
-inbox is not readable.
+Signed in through the real UI, which the one-time-code flow never managed:
 
-- 20 unit tests on address parsing: case and whitespace normalisation, a line
-  break pasted into the middle of an address, and the malformed shapes.
-- 26 browser tests: the field is `type=email` with `autocomplete=email`,
-  validation blocks the request before it is sent, the address that reaches
-  Supabase is lower-cased and trimmed, and the real error that comes back is
-  rendered as a translated, actionable message rather than raw provider text.
-- The profile trigger mirrors `auth.users.email` into `profiles.email`.
-- The navbar shows the address masked (`le•••••@example.com`), and sign-out
-  returns to the guest state.
+- wrong password is rejected with "That email or password is not correct" — the
+  same message whether or not the account exists, so this cannot be used to
+  discover who has one
+- the correct password signs in, the chip shows `ci•••••@example.com`, and the
+  session survives a reload
+- **no network call to any email endpoint during sign-in**, asserted by
+  intercepting requests
+- sign-out returns to the guest state
+- `/auth/confirm` handles a missing token, a garbage token, and an off-site
+  `next` without a 500
 
-The gap is entering a real code. Once custom SMTP is configured, that is the
-one path still to confirm by hand.
+21 browser assertions, plus 115 unit tests.
 
 ## Phase 2.5 — Document persistence
 
@@ -184,3 +214,76 @@ account stays empty.
 
 Test users and all their data were deleted afterwards; every table is back to
 zero rows.
+
+## Phase 3 — Landing page, profile, Aadhaar, identity
+
+### First-run landing (`/welcome`)
+
+Two steps: choose a language, then choose whether to have an account. Language
+comes first deliberately — everything after it, including the question about
+signing in, is then asked in a language the citizen actually reads rather than
+making them agree to something in English first.
+
+`OnboardingGate` sends first-time visitors there. It reads the flag with
+`useSyncExternalStore` rather than an effect, which avoids both a hydration
+mismatch and a flash of the main page being yanked away.
+
+`legallingo_onboarded` joins `legallingo_language` as the only two things on the
+device. Both are UI preferences; still no documents.
+
+### Aadhaar
+
+Read by the same browser OCR the documents use. **The image is never uploaded**
+— verified by intercepting network traffic during the read — and the full
+twelve-digit number never leaves `extractAadhaar`. What is saved is
+`aadhaar_last4` and the printed name.
+
+Two things make this more than a regex:
+
+**Verhoeff checksum.** Aadhaar numbers are check-digit protected. Running it
+means a stray twelve-digit string on the card — an enrolment id, a phone number,
+an OCR misread — is rejected instead of being stored as somebody's Aadhaar.
+Tested against every single-digit mutation and every adjacent transposition of a
+valid number: all rejected. A failed checksum is reported as "take a sharper
+photo", not as a bad card.
+
+**A 16-digit VID is not an Aadhaar number.** It contains valid-looking 12-digit
+substrings; accepting one would store the wrong last four digits.
+
+### Identity check
+
+`verifyIdentity` compares the name on the card against the parties in the open
+document, reusing `compareNames` from the Risk Engine. Four verdicts:
+
+- `CONFIRMED` — the name appears, spelled the same.
+- `LIKELY` — present but abbreviated. "Ramesh V. Patil" against "Ramesh Vithal
+  Patil" is the commonest benign difference in Indian records; calling it a
+  mismatch would send people to a lawyer over nothing.
+- `NOT_NAMED` — the document names people and none is this citizen. Styled as a
+  warning, because being handed a deed naming someone subtly different is a real
+  way for a sale to be undone later.
+- `UNKNOWN` — nothing to compare. Better silence than telling someone they are
+  "not named" in a document whose parties simply could not be extracted.
+
+It never says a document is valid or invalid. It says whether two names agree.
+
+### A bug worth recording
+
+The name extractor originally anchored on "the line above the date of birth".
+A PDF text layer yields the whole card as one run with no newlines, so there was
+no such line and no name was ever returned — while all 18 unit tests passed,
+because they used neatly-lined-up card text. Caught only by running a real card
+through the real OCR path. The extractor now segments on printed card phrases
+rather than newlines, and five regression tests cover the single-run shape.
+
+### Deleting an account: order matters
+
+Supabase blocks direct deletion from `storage.objects` ("Use the Storage API
+instead"), so removing a user does **not** remove their uploaded scans — the
+database rows cascade away and the files stay.
+
+Account deletion must therefore delete files through the Storage API **first**,
+while the owner's session still exists, and remove the user second. The in-app
+`deleteDocumentSet` already does this for a single document; a full
+account-deletion flow does not exist yet and is the remaining gap for a right-to-
+erasure request.

@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { AskLegalLingoChat } from '@/components/AskLegalLingoChat';
 import { ChatLauncher } from '@/components/ChatLauncher';
 import { AuthModal } from '@/components/AuthModal';
+import { OnboardingGate } from '@/components/OnboardingGate';
 import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <AppProvider>
             <Navbar />
-            <div className="flex-1">{children}</div>
+            <div className="flex-1">
+              <OnboardingGate>{children}</OnboardingGate>
+            </div>
             <AskLegalLingoChat />
             <ChatLauncher />
             <Footer />

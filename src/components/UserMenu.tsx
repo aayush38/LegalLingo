@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogIn, LogOut, UserRound, ChevronDown } from 'lucide-react';
+import { LogIn, LogOut, UserRound, ChevronDown, IdCard } from 'lucide-react';
+import { ProfileModal } from './ProfileModal';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
 import { getTranslation } from '@/lib/translations';
@@ -17,6 +18,7 @@ export const UserMenu: React.FC<{ compact?: boolean }> = ({ compact = false }) =
   const { language } = useApp();
   const { user, profile, isLoading, isGuest, authAvailable, openAuthModal, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const t = (key: string) => getTranslation(key, language);
@@ -85,6 +87,18 @@ export const UserMenu: React.FC<{ compact?: boolean }> = ({ compact = false }) =
           </div>
           <button
             role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              setProfileOpen(true);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-emerald-800 hover:bg-emerald-50 transition-colors"
+          >
+            <IdCard className="w-4 h-4" />
+            {t('myProfile')}
+          </button>
+
+          <button
+            role="menuitem"
             onClick={async () => {
               setMenuOpen(false);
               await signOut();
@@ -96,6 +110,8 @@ export const UserMenu: React.FC<{ compact?: boolean }> = ({ compact = false }) =
           </button>
         </div>
       )}
+
+      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
     </div>
   );
 };
