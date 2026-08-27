@@ -53,6 +53,7 @@ export const ProfileModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
   const [reading, setReading] = useState(false);
   const [aadhaarError, setAadhaarError] = useState<AadhaarError | null>(null);
   const [justRead, setJustRead] = useState<AadhaarExtraction | null>(null);
+  const [filledFromCard, setFilledFromCard] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const t = (key: string) => getTranslation(key, language);
@@ -96,14 +97,35 @@ export const ProfileModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       }
 
       setJustRead(result);
-      // Offer the card's spelling where the citizen has not typed their own —
-      // it is the spelling a registrar will compare against.
+
+      /*
+       * Fill the form from the card.
+       *
+       * Only empty fields are written, so a citizen who has already corrected
+       * something does not have it overwritten by an OCR guess. The card's
+       * spelling is what a registrar compares against, which is why it is
+       * offered rather than left for them to retype.
+       */
       if (result.name && !displayName.trim()) setDisplayName(result.name);
+      if (result.careOfName && !fatherSpouse.trim()) setFatherSpouse(result.careOfName);
       if (result.dob && !dob) {
+        // The card prints dd/mm/yyyy; the date input wants yyyy-mm-dd.
         const m = result.dob.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
         if (m) setDob(`${m[3]}-${m[2]}-${m[1]}`);
+        else if (/^\d{4}$/.test(result.dob)) setDob(`${result.dob}-01-01`);
       }
       if (result.gender && !gender) setGender(result.gender);
+
+      const addr = result.address;
+      if (addr) {
+        if (addr.line && !addressLine.trim()) setAddressLine(addr.line);
+        if (addr.city && !city.trim()) setCity(addr.city);
+        if (addr.district && !district.trim()) setDistrict(addr.district);
+        if (addr.state && !state.trim()) setState(addr.state);
+        if (addr.pincode && !pincode.trim()) setPincode(addr.pincode);
+      }
+
+      setFilledFromCard(true);
 
       const supabase = getSupabaseBrowserClient();
       if (supabase && user) {
@@ -286,7 +308,17 @@ export const ProfileModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             <div className="p-5 sm:p-6 space-y-6">
               {/* ---- Identity ---- */}
               <section className="space-y-3">
-                <h3 className="text-sm font-black text-emerald-950">{t('profileSectionIdentity')}</h3>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-emerald-950">{t('profileSectionIdentity')}</h3>
+                  {filledFromCard && (
+                    <span
+                      role="status"
+                      className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md"
+                    >
+                      {t('filledFromAadhaar')}
+                    </span>
+                  )}
+                </div>
                 {field('profile-name', t('displayNameLabel'), displayName, setDisplayName, {
                   placeholder: t('displayNamePlaceholder')
                 })}

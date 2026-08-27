@@ -2,6 +2,7 @@ import { LanguageCode } from './types';
 
 export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   en: {
+    filledFromAadhaar: 'Filled from your Aadhaar',
     allClausesLabel: 'All Clauses',
     allClausesNote: 'Every clause in the document, including the routine ones.',
     clauseAnalysisLabel: 'Clause Analysis',
@@ -442,6 +443,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   hi: {
+    filledFromAadhaar: 'आधार से भरा गया',
     allClausesLabel: 'सभी धाराएँ',
     allClausesNote: 'दस्तावेज की हर धारा, सामान्य धाराओं समेत।',
     clauseAnalysisLabel: 'खंड विश्लेषण',
@@ -882,6 +884,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   mr: {
+    filledFromAadhaar: 'आधारवरून भरले',
     allClausesLabel: 'सर्व कलम',
     allClausesNote: 'दस्तऐवजातील प्रत्येक कलम, नेहमीच्या कलमांसह.',
     clauseAnalysisLabel: 'कलम विश्लेषण',
@@ -1322,6 +1325,7 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   gu: {
+    filledFromAadhaar: 'આધારમાંથી ભરાયું',
     allClausesLabel: 'બધા કલમો',
     allClausesNote: 'દસ્તાવેજની દરેક કલમ, સામાન્ય કલમો સહિત.',
     clauseAnalysisLabel: 'કલમ વિશ્લેષણ',

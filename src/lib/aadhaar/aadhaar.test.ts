@@ -178,6 +178,80 @@ describe('extractAadhaar — rejections', () => {
   });
 });
 
+describe('extractAadhaar - address and care-of name', () => {
+  const NL = String.fromCharCode(10);
+  const grouped = VALID.slice(0, 4) + ' ' + VALID.slice(4, 8) + ' ' + VALID.slice(8);
+
+  const WITH_ADDRESS = [
+    'Government of India',
+    'Ramesh Vithal Patil',
+    'DOB: 14/08/1979',
+    'MALE',
+    'Address: S/O Vithal Ganpat Patil, Plot 14 Shivaji Nagar, Khed, Pune, Maharashtra - 410501',
+    grouped
+  ].join(NL);
+
+  it('reads the S/O name', () => {
+    expect(extractAadhaar(WITH_ADDRESS).careOfName).toBe('Vithal Ganpat Patil');
+  });
+
+  it('splits the address into form fields', () => {
+    const a = extractAadhaar(WITH_ADDRESS).address;
+    expect(a).toBeDefined();
+    expect(a!.state).toBe('Maharashtra');
+    expect(a!.pincode).toBe('410501');
+    expect(a!.district).toBe('Pune');
+    expect(a!.city).toBe('Khed');
+    expect(a!.line).toContain('Shivaji Nagar');
+    // The father's name must not leak into the address line.
+    expect(a!.line).not.toContain('Vithal Ganpat Patil');
+    expect(a!.line).not.toMatch(/S\/O/i);
+  });
+
+  it('does not take a PIN code out of the Aadhaar number', () => {
+    // Six consecutive digits sit inside every twelve-digit Aadhaar. Reading one
+    // as a PIN would drop a fragment of somebody's Aadhaar into their address.
+    const noPin = [
+      'Government of India',
+      'Ramesh Patil',
+      'Address: Plot 14, Khed, Pune, Maharashtra',
+      VALID
+    ].join(NL);
+    expect(extractAadhaar(noPin).address?.pincode).toBeUndefined();
+  });
+
+  it('rejects a PIN code starting with zero', () => {
+    const bad = [
+      'Government of India',
+      'Ramesh Patil',
+      'Address: Plot 14, Khed, Pune, Maharashtra - 010501',
+      VALID
+    ].join(NL);
+    expect(extractAadhaar(bad).address?.pincode).toBeUndefined();
+  });
+
+  it('handles W/O, D/O and C/O as well as S/O', () => {
+    for (const rel of ['W/O', 'D/O', 'C/O']) {
+      const t = [
+        'Government of India',
+        'Sunita Patil',
+        'Address: ' + rel + ' Ramesh Patil, Khed, Pune, Maharashtra - 410501',
+        VALID
+      ].join(NL);
+      expect(extractAadhaar(t).careOfName).toBe('Ramesh Patil');
+    }
+  });
+
+  it('returns no address when the card has none', () => {
+    const t = ['Government of India', 'Ramesh Patil', 'DOB: 01/01/1980', VALID].join(NL);
+    expect(extractAadhaar(t).address).toBeUndefined();
+  });
+
+  it('still never exposes the full number', () => {
+    expect(JSON.stringify(extractAadhaar(WITH_ADDRESS))).not.toContain(VALID);
+  });
+});
+
 describe('looksLikeAadhaarCard', () => {
   it('recognises the card in English and Hindi', () => {
     expect(looksLikeAadhaarCard('GOVERNMENT OF INDIA')).toBe(true);

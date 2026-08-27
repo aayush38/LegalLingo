@@ -70,6 +70,22 @@ export interface AadhaarExtraction {
   dob?: string;
   gender?: 'Male' | 'Female' | 'Other';
   /**
+   * The name after S/O, W/O, D/O or C/O.
+   *
+   * Indian records identify a person as "X, son/wife of Y", and a deed's party
+   * line often turns on it, so it is worth lifting off the card rather than
+   * asking the citizen to type it again.
+   */
+  careOfName?: string;
+  /** The printed address, split into the fields a form asks for. */
+  address?: {
+    line?: string;
+    city?: string;
+    district?: string;
+    state?: string;
+    pincode?: string;
+  };
+  /**
    * Set when a twelve-digit candidate was present but failed the checksum —
    * usually an OCR misread of a genuine card rather than a forged one, so the
    * UI asks for a clearer photo instead of accusing anyone.
@@ -216,6 +232,93 @@ function findGender(text: string): AadhaarExtraction['gender'] {
   return undefined;
 }
 
+/**
+ * States and union territories, longest first so "Andhra Pradesh" is matched
+ * before "Andhra" and "West Bengal" before "Bengal".
+ */
+const STATES = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli', 'Daman and Diu', 'Delhi', 'Goa',
+  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya',
+  'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim',
+  'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+].sort((a, b) => b.length - a.length);
+
+/** The relationship prefixes printed above an Aadhaar address. */
+const CARE_OF_SOURCE = '(?:S/O|W/O|D/O|C/O)[:.\\s-]*';
+
+/**
+ * Finds the six-digit PIN code.
+ *
+ * Guarded against matching six digits inside the twelve-digit Aadhaar number,
+ * which would drop a fragment of somebody's Aadhaar into their address.
+ */
+function findPincode(text: string): string | undefined {
+  for (const m of text.matchAll(/\b([1-9][0-9]{5})\b/g)) {
+    const before = text[m.index! - 1];
+    const after = text[m.index! + m[0].length];
+    if (before && /\d/.test(before)) continue;
+    if (after && /\d/.test(after)) continue;
+    return m[1];
+  }
+  return undefined;
+}
+
+/** The name following S/O, W/O, D/O or C/O. */
+function findCareOfName(text: string): string | undefined {
+  const m = text.match(new RegExp(CARE_OF_SOURCE + '([A-Za-z][A-Za-z.\\s]{2,60})', 'i'));
+  if (!m) return undefined;
+  const name = m[1].split(/[,\n]/)[0].replace(/\s+/g, ' ').trim();
+  const words = name.split(/\s+/);
+  if (words.length < 2 || words.length > 5) return undefined;
+  return name;
+}
+
+/**
+ * Splits the printed address into the fields a form asks for.
+ *
+ * An Aadhaar address is a comma-separated run ending in district, state and
+ * PIN. Working backwards from the PIN and the state name is far more reliable
+ * than trying to parse forwards through house numbers and landmarks.
+ */
+function findAddress(text: string): AadhaarExtraction['address'] {
+  const marker = text.search(/\b(?:address)\b|पता/i);
+  if (marker < 0) return undefined;
+
+  let block = text.slice(marker).replace(/\b(?:address)\b[:.\s-]*/i, '').replace(/पता[:.\s-]*/, '');
+  // Stop at the Aadhaar number or a VID, if either follows the address.
+  block = block.split(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/)[0];
+  // Drop the relationship prefix together with the name that follows it, up to
+  // the first comma. Removing only the "S/O" would leave the father's or
+  // spouse's name sitting at the front of the citizen's own address.
+  block = block
+    .replace(new RegExp(CARE_OF_SOURCE + '[^,]*,?', 'i'), '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!block) return undefined;
+
+  const pincode = findPincode(block);
+  if (pincode) block = block.split(pincode)[0];
+
+  const state = STATES.find((st) => new RegExp('\\b' + st + '\\b', 'i').test(block));
+  if (state) block = block.replace(new RegExp('\\b' + state + '\\b', 'i'), '');
+
+  const parts = block
+    .split(',')
+    .map((x) => x.replace(/^[\s-]+/, '').replace(/[\s-]+$/, '').trim())
+    .filter(Boolean);
+
+  // The last surviving part is the district, the one before it the town or
+  // village, and everything earlier is the street address.
+  const district = parts.length > 1 ? parts[parts.length - 1] : undefined;
+  const city = parts.length > 2 ? parts[parts.length - 2] : undefined;
+  const line = parts.slice(0, Math.max(0, parts.length - 2)).join(', ') || parts[0];
+
+  const address = { line, city, district, state, pincode };
+  return Object.values(address).some(Boolean) ? address : undefined;
+}
+
 /** Whether the text looks like an Aadhaar card at all. */
 export function looksLikeAadhaarCard(text: string): boolean {
   return CARD_MARKERS.some((re) => re.test(text));
@@ -254,6 +357,8 @@ export function extractAadhaar(text: string): AadhaarExtraction {
     last4,
     name: findName(text),
     dob: findDob(text),
-    gender: findGender(text)
+    gender: findGender(text),
+    careOfName: findCareOfName(text),
+    address: findAddress(text)
   };
 }
