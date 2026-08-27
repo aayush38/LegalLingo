@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, UserRound, Loader2, IdCard, ShieldCheck, AlertCircle, Trash2, Check, LogIn, MapPin
 } from 'lucide-react';
@@ -216,7 +217,16 @@ export const ProfileModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
     </div>
   );
 
-  return (
+  /*
+   * Rendered into document.body rather than in place.
+   *
+   * This modal is opened from the user menu, which lives inside the navbar —
+   * and the navbar carries `backdrop-blur-md`. A backdrop-filter establishes a
+   * containing block for fixed-position descendants, so `fixed inset-0` was
+   * resolving against the header strip instead of the viewport and the whole
+   * dialog was drawn inside it.
+   */
+  const modal = (
     // The scroll lives on the backdrop, not on the panel. With the panel
     // scrolling instead, a tall profile form centred in a short viewport pushed
     // its own header above the top of the screen with no way to reach it.
@@ -439,4 +449,9 @@ export const ProfileModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       </div>
     </div>
   );
+
+  // document.body does not exist during SSR; the modal only ever opens from a
+  // user action, so rendering nothing on the server is correct.
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 };
