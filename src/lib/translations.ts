@@ -2,6 +2,8 @@ import { LanguageCode } from './types';
 
 export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   en: {
+    allClausesLabel: 'All Clauses',
+    allClausesNote: 'Every clause in the document, including the routine ones.',
     clauseAnalysisLabel: 'Clause Analysis',
     clauseModalSubtitle: 'The Clause Engine explains what each clause of your document actually means, in plain words.',
     riskEngineCardLabel: 'Risk Engine',
@@ -440,6 +442,8 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   hi: {
+    allClausesLabel: 'सभी धाराएँ',
+    allClausesNote: 'दस्तावेज की हर धारा, सामान्य धाराओं समेत।',
     clauseAnalysisLabel: 'खंड विश्लेषण',
     clauseModalSubtitle: 'खंड इंजन बताता है कि आपके दस्तावेज के हर खंड का सरल शब्दों में क्या अर्थ है।',
     riskEngineCardLabel: 'जोखिम इंजन',
@@ -878,6 +882,8 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   mr: {
+    allClausesLabel: 'सर्व कलम',
+    allClausesNote: 'दस्तऐवजातील प्रत्येक कलम, नेहमीच्या कलमांसह.',
     clauseAnalysisLabel: 'कलम विश्लेषण',
     clauseModalSubtitle: 'कलम इंजिन सांगते की तुमच्या दस्तऐवजातील प्रत्येक कलमाचा सोप्या शब्दांत काय अर्थ आहे.',
     riskEngineCardLabel: 'जोखीम इंजिन',
@@ -1316,6 +1322,8 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   gu: {
+    allClausesLabel: 'બધા કલમો',
+    allClausesNote: 'દસ્તાવેજની દરેક કલમ, સામાન્ય કલમો સહિત.',
     clauseAnalysisLabel: 'કલમ વિશ્લેષણ',
     clauseModalSubtitle: 'કલમ એન્જિન સમજાવે છે કે તમારા દસ્તાવેજની દરેક કલમનો સરળ શબ્દોમાં શો અર્થ છે.',
     riskEngineCardLabel: 'જોખમ એન્જિન',

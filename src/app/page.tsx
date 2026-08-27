@@ -6,6 +6,7 @@ import { DashboardOverview } from '@/components/DashboardOverview';
 import { DocumentReader } from '@/components/DocumentReader';
 import { SupportingDocuments } from '@/components/SupportingDocuments';
 import { ActionChecklist } from '@/components/ActionChecklist';
+import { GovtServicesSection } from '@/components/GovtServicesSection';
 import { useApp } from '@/context/AppContext';
 
 export default function HomePage() {
@@ -32,6 +33,9 @@ export default function HomePage() {
                                its evidence, plus the clauses flagged as risky
               Document Health  completeness, and what is missing
 
+            Government schemes stay a full-width section at the bottom rather
+            than a card: they are a next step to act on, not a finding to read.
+
             The sections that used to repeat that content underneath — the
             citizen summary, the standalone risk findings, and "things you
             should check" — were saying the same things twice.
@@ -46,6 +50,9 @@ export default function HomePage() {
 
           {/* Citizen Action Checklist */}
           <ActionChecklist />
+
+          {/* Government schemes and portals matched to this document */}
+          <GovtServicesSection />
 
         </div>
       )}

@@ -202,6 +202,7 @@ ${CHUNK_SCHEMA}
 Rules:
 - Base everything strictly on the actual text below. Do not invent names, amounts, or clauses that are not present.
 - Extract EVERY distinct clause/section/paragraph present in this excerpt — do not skip any and do not artificially limit the count.
+- This includes ordinary, routine and boilerplate clauses. Do not leave a clause out because it looks unremarkable: give it "riskLevel": "standard" and explain it anyway. A citizen reading their own agreement needs every clause explained, not only the alarming ones.
 - Write all explanations in simple, plain language suitable for a citizen with no legal background.
 - Only include terms in "legalTerms" that actually appear in this excerpt.
 - This is a partial excerpt of a larger document, so it is normal and expected if it starts or ends mid-topic.

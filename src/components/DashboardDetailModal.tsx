@@ -224,9 +224,17 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
 
               {/* Clause List */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {getTranslation('importantClauses', language)} ({importantClauses.length})
-                </h4>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {getTranslation('allClausesLabel', language)} ({importantClauses.length})
+                  </h4>
+                  {/* Says "all" rather than "important": routine clauses are
+                      listed here too, marked standard, because a citizen reading
+                      their own agreement needs every clause explained. */}
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                    {getTranslation('allClausesNote', language)}
+                  </p>
+                </div>
 
                 {importantClauses.length === 0 ? (
                   <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-500 font-semibold">
