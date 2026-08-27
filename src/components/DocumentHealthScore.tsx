@@ -22,7 +22,7 @@ export const DocumentHealthScore: React.FC = () => {
   ];
 
   return (
-    <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
+    <section id="section-document-health" className="scroll-mt-20 bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <Activity className="w-6 h-6" />
@@ -36,10 +36,6 @@ export const DocumentHealthScore: React.FC = () => {
           </h2>
         </div>
       </div>
-
-      <p className="text-xs font-semibold text-gray-500 mb-6">
-        {getTranslation('completenessIndicator', language)}
-      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {items.map((item, idx) => (

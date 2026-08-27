@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, ShieldAlert, Globe, FileText, Landmark, FolderHeart, Menu, X } from 'lucide-react';
+import { ShieldCheck, Globe, FileText, Landmark, FolderHeart, Menu, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@/lib/types';
 import { getTranslation } from '@/lib/translations';
@@ -11,7 +11,7 @@ import { UserMenu } from './UserMenu';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { language, setLanguage, privacyShield, togglePrivacyShield } = useApp();
+  const { language, setLanguage } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -34,14 +34,14 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1">
             <Link
               href="/"
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                 pathname === '/'
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-gray-600 hover:text-emerald-700 hover:bg-gray-50'
+                  ? 'bg-emerald-50 text-emerald-800'
+                  : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50'
               }`}
             >
               <span className="flex items-center gap-1.5">
@@ -51,10 +51,10 @@ export const Navbar: React.FC = () => {
 
             <Link
               href="/schemes"
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                 pathname === '/schemes'
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-gray-600 hover:text-emerald-700 hover:bg-gray-50'
+                  ? 'bg-emerald-50 text-emerald-800'
+                  : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50'
               }`}
             >
               <span className="flex items-center gap-1.5">
@@ -64,10 +64,10 @@ export const Navbar: React.FC = () => {
 
             <Link
               href="/my-documents"
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                 pathname === '/my-documents'
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-gray-600 hover:text-emerald-700 hover:bg-gray-50'
+                  ? 'bg-emerald-50 text-emerald-800'
+                  : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50/50'
               }`}
             >
               <span className="flex items-center gap-1.5">
@@ -76,32 +76,8 @@ export const Navbar: React.FC = () => {
             </Link>
           </nav>
 
-          {/* Controls: Language & Privacy Shield */}
+          {/* Controls: Language Dropdown */}
           <div className="hidden md:flex items-center gap-3">
-            
-            {/* Privacy Shield Toggle */}
-            <button
-              onClick={togglePrivacyShield}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
-                privacyShield
-                  ? 'bg-emerald-600 text-white shadow-emerald-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              title={getTranslation('privacyShieldTooltip', language)}
-            >
-              {privacyShield ? (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-white animate-pulse" />
-                  <span>{getTranslation('privacyShieldOn', language)}</span>
-                </>
-              ) : (
-                <>
-                  <ShieldAlert className="w-3.5 h-3.5 text-gray-500" />
-                  <span>{getTranslation('privacyShieldOff', language)}</span>
-                </>
-              )}
-            </button>
-
             {/* Language Selector Dropdown */}
             <div className="relative flex items-center bg-emerald-50/80 rounded-lg px-2.5 py-1.5 border border-emerald-200">
               <Globe className="w-4 h-4 text-emerald-600 mr-1.5" />
@@ -124,15 +100,9 @@ export const Navbar: React.FC = () => {
           {/* Mobile Menu Trigger */}
           <div className="flex md:hidden items-center gap-2">
             <button
-              onClick={togglePrivacyShield}
-              className={`p-1.5 rounded-full ${privacyShield ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-            </button>
-
-            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

@@ -3,7 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { fetchDemoAnalysis, AnalysisResponse } from '@/lib/api';
+import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
+import { DocumentAnalysis } from '@/lib/types';
+import { getTranslation } from '@/lib/translations';
+import { applyPrivacyMask } from '@/lib/privacy';
+import { getTranslatedExplanation } from '@/lib/ai';
 
 import { ShieldCheck, AlertCircle, Layers, Scale, Sparkles, CheckCircle2, FileText, Download, ArrowLeft } from 'lucide-react';
 import { CrossDocValidation } from '@/components/CrossDocValidation';
@@ -20,24 +24,69 @@ import { OcrTextEditorModal } from '@/components/OcrTextEditorModal';
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
-  const { currentAnalysis, setCurrentAnalysis } = useApp();
-  const [data, setData] = useState<AnalysisResponse | null>(currentAnalysis as any);
-  const [isOcrOpen, setIsOcrOpen] = useState(false);
+  const docId = (params?.id as string) || '';
+  const { currentAnalysis, setCurrentAnalysis, savedDocuments, language, translationCache, privacyShield } = useApp();
+  const [data, setData] = useState<any>(currentAnalysis);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [notFound, setNotFound] = useState<boolean>(false);
+  const [isOcrOpen, setIsOcrOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    async function load() {
-      if (!currentAnalysis) {
-        const res = await fetchDemoAnalysis();
-        setCurrentAnalysis(res as any);
-        setData(res);
-      } else {
-        setData(currentAnalysis as any);
-      }
-    }
-    load();
-  }, [currentAnalysis, setCurrentAnalysis]);
+    let isMounted = true;
 
-  if (!data) {
+    // 1. Check if currentAnalysis in memory matches this docId
+    if (currentAnalysis && currentAnalysis.id === docId) {
+      setData(currentAnalysis);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Check savedDocuments in AppContext
+    const foundInContext = savedDocuments.find((d) => d.id === docId);
+    if (foundInContext) {
+      setCurrentAnalysis(foundInContext);
+      setData(foundInContext);
+      setIsLoading(false);
+      return;
+    }
+
+    // 3. Fallback: check localStorage directly (useful immediately on cold page refresh)
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('legallingo_saved_docs') : null;
+      if (raw) {
+        const parsed: DocumentAnalysis[] = JSON.parse(raw);
+        const foundInStorage = parsed.find((d) => d.id === docId);
+        if (foundInStorage) {
+          setCurrentAnalysis(foundInStorage);
+          setData(foundInStorage);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load saved doc from localStorage:', err);
+    }
+
+    // 4. Check if this is the sample document ID
+    if (docId === SAMPLE_AGRICULTURAL_SALE_AGREEMENT.id) {
+      setCurrentAnalysis(SAMPLE_AGRICULTURAL_SALE_AGREEMENT);
+      setData(SAMPLE_AGRICULTURAL_SALE_AGREEMENT);
+      setIsLoading(false);
+      return;
+    }
+
+    // 5. If not found in any store
+    if (isMounted) {
+      setNotFound(true);
+      setIsLoading(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [docId, currentAnalysis, savedDocuments, setCurrentAnalysis]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-2">
@@ -48,6 +97,58 @@ export default function AnalysisPage() {
     );
   }
 
+  if (notFound || !data) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-md border border-slate-200 dark:border-slate-800 text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+            {getTranslation('analysisNotFoundTitle', language)}
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            {getTranslation('analysisNotFoundDesc', language)}
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={() => router.push('/my-documents')}
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all"
+            >
+              {getTranslation('backToMyDocs', language)}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const rawTitle = data.documentTitle || data.title || 'Legal Document';
+  const title = applyPrivacyMask(
+    getTranslatedExplanation(rawTitle, language, translationCache),
+    privacyShield
+  );
+
+  const rawDocType = data.documentType || data.document_type || 'Legal Document';
+  const docType = getTranslatedExplanation(rawDocType, language, translationCache);
+
+  const confidence = data.classificationConfidence || data.ocrConfidence || (data.confidence !== undefined ? Math.round(data.confidence * 100) : 94);
+
+  const summary = applyPrivacyMask(
+    getTranslatedExplanation(data.summary || '', language, translationCache),
+    privacyShield
+  );
+
+  const rawSimpleExplanation = data.verySimpleSummary || data.simple_explanation || '';
+  const simpleExplanation = applyPrivacyMask(
+    getTranslatedExplanation(rawSimpleExplanation, language, translationCache),
+    privacyShield
+  );
+
+  const fileCount = data.sourceFiles?.length || data.analysisMeta?.totalFiles || 1;
+  const completenessScore = data.understandingScore || data.completeness?.overall_score || 87;
+  const attentionCount = data.missingInformation?.length || data.attention_report?.length || (data.importantClauses?.filter((c: any) => c.riskLevel === 'high')?.length ?? 0);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       
@@ -55,21 +156,21 @@ export default function AnalysisPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <button
-            onClick={() => router.push('/')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-600 mb-2"
+            onClick={() => router.push('/my-documents')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-600 mb-2 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Upload
+            <ArrowLeft className="w-4 h-4" /> {getTranslation('backToMyDocs', language)}
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-              {data.title}
+              {title}
             </h1>
             <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-full text-xs font-bold border border-emerald-300 dark:border-emerald-800">
-              {data.document_type}
+              {docType}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Processed via LegalLingo Engine • State: {data.state} • Confidence: {Math.round(data.confidence * 100)}%
+            Processed via LegalLingo Engine • Confidence: {confidence}%
           </p>
         </div>
 
@@ -86,28 +187,36 @@ export default function AnalysisPage() {
       {/* A. Top Summary Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Document Type</span>
-          <p className="text-lg font-extrabold text-slate-900 dark:text-white">{data.document_type}</p>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {getTranslation('docType', language)}
+          </span>
+          <p className="text-lg font-extrabold text-slate-900 dark:text-white">{docType}</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attention Flags</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {getTranslation('attentionRequiredLabel', language)}
+          </span>
           <p className="text-lg font-extrabold text-rose-600 dark:text-rose-400">
-            {data.attention_report?.length || 0} Action Items
+            {attentionCount} {getTranslation('actionRequiredLabel', language)}
           </p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cross-Doc Checks</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {getTranslation('selectedDocumentsLabel', language)}
+          </span>
           <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-            {data.validations?.length || 0} Executed
+            {fileCount} {getTranslation(fileCount > 1 ? 'filesLabel' : 'fileLabel', language)}
           </p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completeness</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {getTranslation('understandingScore', language)}
+          </span>
           <p className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
-            {data.completeness?.overall_score || 87}% Score
+            {completenessScore}% {getTranslation('scoreLabel', language)}
           </p>
         </div>
       </div>
@@ -115,27 +224,29 @@ export default function AnalysisPage() {
       {/* B. AI Document Summary */}
       <div className="bg-gradient-to-r from-emerald-900 to-emerald-950 text-white p-6 rounded-2xl shadow-md space-y-2">
         <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-4 h-4" /> AI Document Summary • What is this document about?
+          <Sparkles className="w-4 h-4" /> {getTranslation('aiDocumentSummaryLabel', language)} • {getTranslation('summaryTitle', language)}
         </div>
         <h2 className="text-xl font-bold text-white">
-          {data.summary}
+          {summary}
         </h2>
-        <p className="text-sm text-emerald-100 leading-relaxed pt-1">
-          {data.simple_explanation}
-        </p>
+        {simpleExplanation && (
+          <p className="text-sm text-emerald-100 leading-relaxed pt-1">
+            {simpleExplanation}
+          </p>
+        )}
       </div>
 
       {/* C. Citizen Summary Cards */}
       <FiveQuestionsCard />
 
       {/* E. Cross-Document Validation Engine Results */}
-      <CrossDocValidation validations={data.validations} />
+      {data.validations && <CrossDocValidation validations={data.validations} />}
 
       {/* F. Attention & Verification Report */}
-      <AttentionReport items={data.attention_report} />
+      {data.attention_report && <AttentionReport items={data.attention_report} />}
 
       {/* G. Evidence Drawer */}
-      <EvidenceDrawer citations={data.legal_citations} />
+      {data.legal_citations && <EvidenceDrawer citations={data.legal_citations} />}
 
       {/* D. Side-by-Side Document Reader */}
       <DocumentReader onOpenOcrEditor={() => setIsOcrOpen(true)} />

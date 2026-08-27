@@ -1,74 +1,63 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { LandingHero } from '@/components/LandingHero';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { DocumentReader } from '@/components/DocumentReader';
 import { FiveQuestionsCard } from '@/components/FiveQuestionsCard';
 import { SupportingDocuments } from '@/components/SupportingDocuments';
 import { RiskEngineFindings } from '@/components/RiskEngineFindings';
-import { ClauseRiskAnalysis } from '@/components/ClauseRiskAnalysis';
-import { DocumentHealthScore } from '@/components/DocumentHealthScore';
-import { DifficultWordsGlossary } from '@/components/DifficultWordsGlossary';
 import { MissingInfoSection } from '@/components/MissingInfoSection';
 import { ActionChecklist } from '@/components/ActionChecklist';
-import { GovtServicesSection } from '@/components/GovtServicesSection';
-import { OcrTextEditorModal } from '@/components/OcrTextEditorModal';
 import { useApp } from '@/context/AppContext';
 
 export default function HomePage() {
   const { currentAnalysis } = useApp();
-  const [isOcrEditorOpen, setIsOcrEditorOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-[#F4FBF7] pb-16">
-      
+
       {/* Landing Hero Uploader */}
       <LandingHero />
 
       {/* Main Analysis Dashboard (Shown after uploading or clicking sample document) */}
       {currentAnalysis && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-8 animate-fade-in">
-          
-          {/* Top Metrics & Large Green AI Summary */}
+
+          {/*
+            The redesigned dashboard folds clause risk, document health, the
+            legal dictionary and government services into its own summary cards
+            and detail modals, so those four no longer appear as standalone
+            sections here.
+
+            The three below are kept because the dashboard has no equivalent for
+            them: the five citizen questions, the verification documents read
+            alongside the agreement, and the deterministic Risk Engine findings
+            (the dashboard's risk card shows the model's clause opinion, which is
+            a different thing from a rule firing on cited evidence).
+          */}
           <DashboardOverview />
 
           {/* Document Reader (Side-by-Side, Simple, Original) */}
-          <DocumentReader onOpenOcrEditor={() => setIsOcrEditorOpen(true)} />
+          <DocumentReader />
 
           {/* What You Need to Know (5 Citizen Questions) */}
           <FiveQuestionsCard />
 
-          {/* Risk and Clause Analysis */}
+          {/* Facts read out of the supporting documents */}
           <SupportingDocuments />
-          {/* Deterministic rule findings first; the LLM clause view stays below
-              as the explanatory detail and as the fallback when the engine is absent. */}
+
+          {/* Deterministic rule findings, each carrying its evidence */}
           <RiskEngineFindings />
-          <ClauseRiskAnalysis />
 
-          {/* Document Health / AI Completeness Score Breakdown */}
-          <DocumentHealthScore />
-
-          {/* Difficult Legal Words Glossary */}
-          <DifficultWordsGlossary />
-
-          {/* Missing Information Alerts */}
+          {/* Missing Information / Things You Should Check */}
           <MissingInfoSection />
 
           {/* Citizen Action Checklist */}
           <ActionChecklist />
 
-          {/* Relevant Government Services */}
-          <GovtServicesSection />
-
         </div>
       )}
-
-      {/* OCR Text Correction Drawer / Modal */}
-      <OcrTextEditorModal
-        isOpen={isOcrEditorOpen}
-        onClose={() => setIsOcrEditorOpen(false)}
-      />
 
     </main>
   );

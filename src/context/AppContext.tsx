@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { DocumentAnalysis, LanguageCode } from '@/lib/types';
+import { DocumentAnalysis, LanguageCode, ClauseAnalysis } from '@/lib/types';
 import { SAMPLE_AGRICULTURAL_SALE_AGREEMENT } from '@/lib/sampleDocs';
 import { analyzeDocumentText, collectTranslatableStrings, translateStrings } from '@/lib/ai';
 import { processDocumentFiles, MAX_FILES_PER_UPLOAD, type UploadItem } from '@/lib/ocr';
@@ -37,9 +37,11 @@ interface AppContextType {
   /** Set when the last save failed, so the UI can say so instead of pretending. */
   syncError: string | null;
   isChatOpen: boolean;
+  selectedClause: ClauseAnalysis | null;
   selectedParagraphId: number | null;
   setCurrentAnalysis: (analysis: any) => void;
   setIsChatOpen: (open: boolean) => void;
+  setSelectedClause: (clause: ClauseAnalysis | null) => void;
   setLanguage: (lang: LanguageCode) => void;
   togglePrivacyShield: () => void;
   setSelectedParagraphId: (id: number | null) => void;
@@ -71,6 +73,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [ocrConfidence, setOcrConfidence] = useState<number>(94);
   const [savedDocuments, setSavedDocuments] = useState<DocumentAnalysis[]>([]);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [selectedClause, setSelectedClause] = useState<ClauseAnalysis | null>(null);
   const [selectedParagraphId, setSelectedParagraphId] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -408,9 +411,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSyncing,
         syncError,
         isChatOpen,
+        selectedClause,
         selectedParagraphId,
         setCurrentAnalysis,
         setIsChatOpen,
+        setSelectedClause,
         setLanguage,
         togglePrivacyShield,
         setSelectedParagraphId,

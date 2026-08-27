@@ -13,7 +13,7 @@ export const GovtServicesSection: React.FC = () => {
   if (!currentAnalysis || !currentAnalysis.relevantServices) return null;
 
   return (
-    <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
+    <section id="section-govt-services" className="scroll-mt-20 bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <Landmark className="w-6 h-6" />

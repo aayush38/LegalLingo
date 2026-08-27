@@ -13,96 +13,37 @@ export const Footer: React.FC = () => {
     <footer className="bg-emerald-950 text-white pt-12 pb-24 sm:pb-12 border-t border-emerald-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* Top Disclaimer Box */}
-        <div className="bg-emerald-900/80 border border-emerald-700/60 rounded-2xl p-4 sm:p-6 text-xs leading-relaxed text-emerald-200">
+        {/* Brand Header */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-sm">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <span className="font-black text-xl text-white tracking-tight">LegalLingo</span>
+          </div>
+          <p className="text-xs text-emerald-300/90 font-medium max-w-2xl leading-relaxed">
+            {getTranslation('footerBrandTagline', language)}
+          </p>
+        </div>
+
+        {/* Legal & Civic Disclaimer */}
+        <div className="bg-emerald-900/80 border border-emerald-700/60 rounded-2xl p-4 sm:p-5 text-xs leading-relaxed text-emerald-200 shadow-sm">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-extrabold text-amber-300 uppercase tracking-wider mb-1">
+            <div className="space-y-1">
+              <h4 className="font-extrabold text-amber-300 uppercase tracking-wider">
                 {getTranslation('disclaimerTitle', language)}
               </h4>
-              <p className="font-medium text-emerald-100">
-                {getTranslation('disclaimerText', language)} {getTranslation('disclaimerTextSuffix', language)}
+              <p className="font-medium text-emerald-100 leading-relaxed">
+                {getTranslation('disclaimerText', language)}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Footer Navigation Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-4">
-          
-          {/* Col 1: Brand */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <span className="font-black text-xl text-white">LegalLingo</span>
-            </div>
-            <p className="text-xs text-emerald-300/80 font-medium">
-              {getTranslation('footerBrandTagline', language)}
-            </p>
-          </div>
-
-          {/* Col 2: Core Tools */}
-          <div>
-            <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              {getTranslation('coreCapabilitiesLabel', language)}
-            </h4>
-            <ul className="space-y-2 text-xs font-semibold text-emerald-200">
-              <li>• {getTranslation('capabilityOcr', language)}</li>
-              <li>• {getTranslation('capabilityReader', language)}</li>
-              <li>• {getTranslation('capabilityClauseRisk', language)}</li>
-              <li>• {getTranslation('capabilityMissingInfo', language)}</li>
-              <li>• {getTranslation('capabilityMultilingual', language)}</li>
-            </ul>
-          </div>
-
-          {/* Col 3: Government Portals */}
-          <div>
-            <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              {getTranslation('civicPortalsLabel', language)}
-            </h4>
-            <ul className="space-y-2 text-xs font-semibold text-emerald-200">
-              <li>
-                <a href="https://bhulekh.mahabhumi.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • {getTranslation('portalMahabhulekh', language)}
-                </a>
-              </li>
-              <li>
-                <a href="https://igrmaharashtra.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • {getTranslation('portalSubRegistrar', language)}
-                </a>
-              </li>
-              <li>
-                <a href="https://pmkisan.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • {getTranslation('portalPmKisan', language)}
-                </a>
-              </li>
-              <li>
-                <a href="https://nalsa.gov.in" target="_blank" rel="noreferrer" className="hover:underline">
-                  • {getTranslation('portalNalsa', language)}
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 4: Target Audience */}
-          <div>
-            <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-3">
-              {getTranslation('targetCitizensLabel', language)}
-            </h4>
-            <p className="text-xs text-emerald-300 font-medium leading-relaxed">
-              {getTranslation('targetCitizensText', language)}
-            </p>
-          </div>
-
-        </div>
-
         {/* Copyright */}
-        <div className="pt-6 border-t border-emerald-900 flex flex-col sm:flex-row items-center justify-between text-xs text-emerald-400 font-semibold gap-2">
+        <div className="pt-4 border-t border-emerald-900 flex flex-col sm:flex-row items-center justify-between text-xs text-emerald-400 font-semibold gap-2">
           <span>{getTranslation('copyrightText', language)}</span>
-          <span>{getTranslation('civicTechFooterLine', language)}</span>
         </div>
 
       </div>
@@ -120,8 +61,11 @@ export const Footer: React.FC = () => {
         </Link>
 
         <button
+          type="button"
           onClick={() => setIsChatOpen(true)}
-          className="flex flex-col items-center text-[10px] font-bold text-white bg-emerald-600 p-2 rounded-full shadow-lg -mt-4 border-2 border-emerald-400"
+          title={getTranslation('chatbotLauncherLabel', language)}
+          aria-label={getTranslation('chatbotLauncherLabel', language)}
+          className="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-[10px] font-bold text-white bg-emerald-600 p-2 rounded-full shadow-lg -mt-4 border-2 border-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:outline-none"
         >
           <MessageSquare className="w-5 h-5 text-white" />
         </button>
