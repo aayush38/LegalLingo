@@ -6,11 +6,9 @@ import {
   ShieldAlert,
   Activity,
   BookOpen,
-  Landmark,
   AlertTriangle,
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
   Sparkles,
   Info,
   MessageSquare,
@@ -19,8 +17,17 @@ import { useApp } from '@/context/AppContext';
 import { applyPrivacyMask } from '@/lib/privacy';
 import { getTranslatedExplanation } from '@/lib/ai';
 import { getTranslation } from '@/lib/translations';
+import { RiskEngineFindings } from './RiskEngineFindings';
 
-export type DashboardModalType = 'risk' | 'health' | 'dictionary' | 'services' | null;
+/**
+ * Two engines, deliberately separate.
+ *
+ * 'risk' is the Clause Engine: what each clause of the document means.
+ * 'riskengine' is the Risk Engine: an independent verification of amounts,
+ * dates, identities, missing information and consistency between clauses,
+ * where every finding cites the text it came from.
+ */
+export type DashboardModalType = 'risk' | 'health' | 'dictionary' | 'riskengine' | null;
 
 interface DashboardDetailModalProps {
   type: DashboardModalType;
@@ -91,8 +98,13 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
   };
 
   const healthScore = currentAnalysis.understandingScore ?? 85;
+  // High-risk first, then the ones needing review: the order someone should
+  // read them in.
+  const riskyClauses = importantClauses
+    .filter((c) => c.riskLevel === 'high' || c.riskLevel === 'review')
+    .sort((a, b) => (a.riskLevel === 'high' ? 0 : 1) - (b.riskLevel === 'high' ? 0 : 1));
+
   const legalTerms = currentAnalysis.legalTerms || [];
-  const relevantServices = currentAnalysis.relevantServices || [];
   const missingInfo = currentAnalysis.missingInformation || [];
 
   return (
@@ -125,24 +137,24 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
                 <BookOpen className="w-5 h-5" />
               </div>
             )}
-            {type === 'services' && (
+            {type === 'riskengine' && (
               <div className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center flex-shrink-0 shadow-xs">
-                <Landmark className="w-5 h-5" />
+                <ShieldAlert className="w-5 h-5" />
               </div>
             )}
 
             <div>
               <h2 id="dashboard-modal-title" className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
-                {type === 'risk' && getTranslation('riskAndClauseAnalysis', language)}
+                {type === 'risk' && getTranslation('clauseAnalysisLabel', language)}
                 {type === 'health' && getTranslation('docHealth', language)}
                 {type === 'dictionary' && getTranslation('legalDictionaryLabel', language)}
-                {type === 'services' && getTranslation('govtServicesLabel', language)}
+                {type === 'riskengine' && getTranslation('riskEngineCardLabel', language)}
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                {type === 'risk' && getTranslation('riskModalSubtitle', language)}
+                {type === 'risk' && getTranslation('clauseModalSubtitle', language)}
                 {type === 'health' && getTranslation('healthModalSubtitle', language)}
                 {type === 'dictionary' && getTranslation('dictionaryModalSubtitle', language)}
-                {type === 'services' && getTranslation('govtServicesModalSubtitle', language)}
+                {type === 'riskengine' && getTranslation('riskEngineModalSubtitle', language)}
               </p>
             </div>
           </div>
@@ -499,62 +511,74 @@ export const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ type
           )}
 
           {/* ---------------- 4. GOVERNMENT SERVICES MODAL ---------------- */}
-          {type === 'services' && (
-            <div className="space-y-4">
-              {relevantServices.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
-                    <Landmark className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-sm font-black text-slate-800">
-                    {getTranslation('noGovtServicesTitle', language)}
-                  </h4>
-                  <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto">
-                    {getTranslation('noGovtServicesDesc', language)}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {relevantServices.map((service) => (
-                    <div
-                      key={service.id}
-                      className="bg-emerald-50/40 p-4 sm:p-5 rounded-2xl border border-emerald-200/80 flex flex-col justify-between space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <h4 className="font-black text-sm sm:text-base text-emerald-950">
-                          {t(service.title)}
-                        </h4>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-extrabold text-emerald-800 uppercase block">
-                            {getTranslation('whyRelevantLabel', language)}
-                          </span>
-                          <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                            {t(service.whyRelevant)}
-                          </p>
-                        </div>
-                      </div>
+          {/* ---------------- 4. RISK ENGINE ---------------- */}
+          {type === 'riskengine' && (
+            <div className="space-y-6">
+              {/*
+                The engine's own findings, rendered by the component that owns
+                them so the evidence, rule ids and confidence stay exactly as
+                the engine produced them.
+              */}
+              <RiskEngineFindings embedded />
 
-                      {service.officialUrl ? (
-                        <a
-                          href={service.officialUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors shadow-xs active:scale-98"
+              {/*
+                The clauses the model marked risky are repeated here so that
+                everything worth checking sits behind one card. The full wording
+                of every clause lives in Clause Analysis; this is the short list.
+              */}
+              <div>
+                <h4 className="text-sm font-black text-slate-900 mb-1">
+                  {getTranslation('riskyClausesHeading', language)}
+                </h4>
+                <p className="text-[11px] text-slate-500 font-medium mb-3">
+                  {getTranslation('riskyClausesNote', language)}
+                </p>
+
+                {riskyClauses.length === 0 ? (
+                  <p className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    {getTranslation('noRiskyClauses', language)}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {riskyClauses.map((clause) => {
+                      const high = clause.riskLevel === 'high';
+                      return (
+                        <li
+                          key={clause.id}
+                          className={`rounded-2xl border p-3.5 ${
+                            high ? 'bg-red-50/60 border-red-200' : 'bg-amber-50/60 border-amber-200'
+                          }`}
                         >
-                          <span>
-                            {service.actionText ? t(service.actionText) : getTranslation('openOfficialPortal', language)}
-                          </span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      ) : (
-                        <div className="w-full px-4 py-2.5 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold text-center">
-                          {getTranslation('viewGuidance', language)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-xs font-black text-slate-900 leading-snug">
+                              {clause.clauseTitle}
+                            </span>
+                            <span
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-md whitespace-nowrap ${
+                                high
+                                  ? 'bg-red-100 text-red-800 border border-red-200'
+                                  : 'bg-amber-100 text-amber-900 border border-amber-200'
+                              }`}
+                            >
+                              {getTranslation(high ? 'highRisk' : 'needsAttention', language)}
+                            </span>
+                          </div>
+                          {clause.whyItMatters && (
+                            <p className="text-[11px] text-slate-700 font-medium mt-1.5 leading-relaxed">
+                              {clause.whyItMatters}
+                            </p>
+                          )}
+                          {clause.page ? (
+                            <span className="text-[10px] font-bold text-slate-500 mt-1.5 inline-block">
+                              {getTranslation('pageLabel', language)} {clause.page}
+                            </span>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
 

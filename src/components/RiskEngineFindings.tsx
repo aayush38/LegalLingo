@@ -34,7 +34,18 @@ const SEVERITY_STYLES: Record<RiskSeverity, { badge: string; card: string; icon:
  * engine produced nothing, which lets the page fall back to the existing
  * clause-level view without a layout gap.
  */
-export const RiskEngineFindings: React.FC = () => {
+interface RiskEngineFindingsProps {
+  /**
+   * Render without the outer card and heading.
+   *
+   * Inside the Risk Engine modal the dialog already supplies the title and the
+   * chrome, so repeating them would put a card inside a card with the same
+   * words on both.
+   */
+  embedded?: boolean;
+}
+
+export const RiskEngineFindings: React.FC<RiskEngineFindingsProps> = ({ embedded = false }) => {
   const { currentAnalysis, language, translationCache, privacyShield } = useApp();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -58,21 +69,29 @@ export const RiskEngineFindings: React.FC = () => {
       ? getTranslation('confMedium', language)
       : getTranslation('confLow', language);
 
+  const Wrapper = embedded ? 'div' : 'section';
+
   return (
-    <section className="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
-          <ShieldAlert className="w-6 h-6" />
+    <Wrapper
+      className={
+        embedded ? '' : 'bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-emerald-100 mb-8'
+      }
+    >
+      {!embedded && (
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
+              {getTranslation('riskEngineLabel', language)}
+            </span>
+            <h2 className="text-2xl font-black text-emerald-950">
+              {getTranslation('riskEngineTitle', language)}
+            </h2>
+          </div>
         </div>
-        <div>
-          <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider">
-            {getTranslation('riskEngineLabel', language)}
-          </span>
-          <h2 className="text-2xl font-black text-emerald-950">
-            {getTranslation('riskEngineTitle', language)}
-          </h2>
-        </div>
-      </div>
+      )}
 
       <p className="text-xs font-medium text-slate-500 mb-5">
         {getTranslation('attentionEngineNote', language)}
@@ -210,6 +229,6 @@ export const RiskEngineFindings: React.FC = () => {
           );
         })}
       </div>
-    </section>
+    </Wrapper>
   );
 };

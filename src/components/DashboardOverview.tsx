@@ -48,7 +48,9 @@ export const DashboardOverview: React.FC = () => {
   const importantClausesCount = currentAnalysis.importantClauses?.length || 0;
   const healthScore = currentAnalysis.understandingScore ?? 85;
   const termsCount = currentAnalysis.legalTerms?.length || 0;
-  const servicesCount = currentAnalysis.relevantServices?.length || 0;
+  // The Risk Engine card reports how many deterministic checks fired, not how
+  // many government portals matched — that card is now the engine's front door.
+  const flaggedCount = currentAnalysis.riskEngine?.findings?.length || 0;
 
   return (
     <section className="space-y-6 mb-10">
@@ -113,11 +115,11 @@ export const DashboardOverview: React.FC = () => {
               type="button"
               onClick={() => setSelectedModal('risk')}
               className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-200 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none flex flex-col justify-between w-full active:scale-[0.99]"
-              title={getTranslation('riskAndClauseAnalysis', language)}
+              title={getTranslation('clauseAnalysisLabel', language)}
             >
               <div>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1 group-hover:text-amber-700 transition-colors truncate">
-                  {getTranslation('riskAndClauseAnalysis', language)}
+                  {getTranslation('clauseAnalysisLabel', language)}
                 </span>
                 <p className="text-2xl font-black text-amber-600">
                   {importantClausesCount}
@@ -159,22 +161,22 @@ export const DashboardOverview: React.FC = () => {
             {/* 3. Government Services (Interactive Card) */}
             <button
               type="button"
-              onClick={() => setSelectedModal('services')}
+              onClick={() => setSelectedModal('riskengine')}
               className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-teal-400 hover:shadow-md transition-all duration-200 text-left cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none flex flex-col justify-between w-full active:scale-[0.99]"
-              title={getTranslation('govtServicesLabel', language)}
+              title={getTranslation('riskEngineCardLabel', language)}
             >
               <div>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1 group-hover:text-teal-700 transition-colors truncate">
-                  {getTranslation('govtServicesLabel', language)}
+                  {getTranslation('riskEngineCardLabel', language)}
                 </span>
                 <p className="text-2xl font-black text-teal-600">
-                  {servicesCount}
+                  {flaggedCount}
                 </p>
               </div>
 
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 w-full">
                 <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100 group-hover:bg-teal-100 transition-colors">
-                  {getTranslation('portalsCountLabel', language)}
+                  {getTranslation('checksFlaggedLabel', language)}
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-transform duration-200 flex-shrink-0" />
               </div>

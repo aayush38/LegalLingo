@@ -2,6 +2,14 @@ import { LanguageCode } from './types';
 
 export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   en: {
+    clauseAnalysisLabel: 'Clause Analysis',
+    clauseModalSubtitle: 'The Clause Engine explains what each clause of your document actually means, in plain words.',
+    riskEngineCardLabel: 'Risk Engine',
+    riskEngineModalSubtitle: 'The Risk Engine independently verifies the document: amounts, dates, identities, missing information and consistency between clauses. Every finding cites the text it came from.',
+    checksFlaggedLabel: 'Checks Flagged',
+    riskyClausesHeading: 'Clauses this document flags as risky',
+    riskyClausesNote: 'Listed here so everything worth checking sits in one place. Open Clause Analysis for the full wording.',
+    noRiskyClauses: 'No clause was flagged as high risk or needing review.',
     dobLabel: 'Date of birth',
     genderLabel: 'Gender',
     genderMale: 'Male',
@@ -432,6 +440,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   hi: {
+    clauseAnalysisLabel: 'खंड विश्लेषण',
+    clauseModalSubtitle: 'खंड इंजन बताता है कि आपके दस्तावेज के हर खंड का सरल शब्दों में क्या अर्थ है।',
+    riskEngineCardLabel: 'जोखिम इंजन',
+    riskEngineModalSubtitle: 'जोखिम इंजन स्वतंत्र रूप से राशि, तिथियाँ, पहचान, छूटी जानकारी और खंडों के बीच मेल की जाँच करता है। हर नतीजा उसी पाठ का हवाला देता है।',
+    checksFlaggedLabel: 'चिह्नित जाँच',
+    riskyClausesHeading: 'इस दस्तावेज के जोखिम भरे खंड',
+    riskyClausesNote: 'सब कुछ एक जगह रखने के लिए यहाँ दिया गया है। पूरा पाठ खंड विश्लेषण में देखें।',
+    noRiskyClauses: 'किसी खंड को उच्च जोखिम या समीक्षा योग्य नहीं माना गया।',
     dobLabel: 'जन्म तिथि',
     genderLabel: 'लिंग',
     genderMale: 'पुरुष',
@@ -862,6 +878,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   mr: {
+    clauseAnalysisLabel: 'कलम विश्लेषण',
+    clauseModalSubtitle: 'कलम इंजिन सांगते की तुमच्या दस्तऐवजातील प्रत्येक कलमाचा सोप्या शब्दांत काय अर्थ आहे.',
+    riskEngineCardLabel: 'जोखीम इंजिन',
+    riskEngineModalSubtitle: 'जोखीम इंजिन स्वतंत्रपणे रक्कम, तारखा, ओळख, गहाळ माहिती आणि कलमांमधील सुसंगती तपासते. प्रत्येक निष्कर्ष त्याच मजकूराचा संदर्भ देतो.',
+    checksFlaggedLabel: 'नोंदवलेल्या तपासण्या',
+    riskyClausesHeading: 'या दस्तऐवजातील जोखमीचे कलम',
+    riskyClausesNote: 'सर्व गोष्टी एका ठिकाणी राहाव्या म्हणून येथे दिले आहेत. पूर्ण मजकूर कलम विश्लेषणात पहा.',
+    noRiskyClauses: 'कोणताही कलम उच्च जोखमीचा किंवा तपासण्याजोगा ठरला नाही.',
     dobLabel: 'जन्म तारीख',
     genderLabel: 'लिंग',
     genderMale: 'पुरुष',
@@ -1292,6 +1316,14 @@ export const UI_TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   },
 
   gu: {
+    clauseAnalysisLabel: 'કલમ વિશ્લેષણ',
+    clauseModalSubtitle: 'કલમ એન્જિન સમજાવે છે કે તમારા દસ્તાવેજની દરેક કલમનો સરળ શબ્દોમાં શો અર્થ છે.',
+    riskEngineCardLabel: 'જોખમ એન્જિન',
+    riskEngineModalSubtitle: 'જોખમ એન્જિન સ્વતંત્ર રીતે રકમ, તારીખ, ઓળખ, ખૂટતી માહિતી અને કલમો વચ્ચેની સસંગતતા ચકાસે છે. દરેક તારણ તે જ લખાણનો સંદર્ભ આપે છે.',
+    checksFlaggedLabel: 'ચિહ્નિત ચકાસણી',
+    riskyClausesHeading: 'આ દસ્તાવેજના જોખમી કલમો',
+    riskyClausesNote: 'બધું એક જ જગ્યાએ રહે માટે અહીં મૂક્યું છે. આખું લખાણ કલમ વિશ્લેષણમાં જુઓ.',
+    noRiskyClauses: 'કોઈ કલમ ઉચ્ચ જોખમ કે ચકાસણીપાત્ર ગણાયી નથી.',
     dobLabel: 'જન્મ તારીખ',
     genderLabel: 'લિંગ',
     genderMale: 'પુરુષ',
